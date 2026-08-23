@@ -1,0 +1,6 @@
+# Este archivo asigna revisores obligatorios por defecto.
+# Toda Pull Request solicitará automáticamente revisión de los usuarios listados abajo.
+# IMPORTANTE: reemplazar por el/los usuario(s) de GitHub correctos del equipo antes de activar
+# "Require review from Code Owners" en la protección de ramas (ver docs/DEPLOYMENT.md).
+
+* @Sebastianc206
