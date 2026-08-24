@@ -18,11 +18,11 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
+      # Nota: reactivar `cache: npm` + `cache-dependency-path: frontend/package-lock.json`
+      # una vez que exista package-lock.json committeado (después del primer `npm install`).
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          node-version: lts/*
       - run: npm install
       - run: npm run lint --if-present
       - run: npm run build
