@@ -1,6 +1,6 @@
 // Esquema de base de datos de SIRX.
-// Los modelos (Producto, Movimiento, Venta, Usuario, etc.) se agregarán
-// durante el Sprint 1 según el modelo de datos definido en el Product Backlog.
+// Los modelos restantes (Producto, Movimiento, Venta, etc.) se agregarán
+// según avancen los siguientes sprints del Product Backlog.
 
 generator client {
   provider = "prisma-client-js"
@@ -9,4 +9,20 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMINISTRADOR
+  OPERADOR
+}
+
+model Usuario {
+  id             Int       @id @default(autoincrement())
+  username       String    @unique
+  passwordHash   String
+  role           Role      @default(OPERADOR)
+  failedAttempts Int       @default(0)
+  lockedUntil    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
