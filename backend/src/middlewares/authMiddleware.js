@@ -11,7 +11,7 @@ function authMiddleware(req, res, next) {
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    req.usuario = { id: payload.sub, username: payload.username, role: payload.role };
+    req.usuario = { idColaborador: payload.sub, username: payload.username, role: payload.role };
     return next();
   } catch (error) {
     return res.status(401).json({ message: "Sesión expirada, inicia sesión nuevamente" });

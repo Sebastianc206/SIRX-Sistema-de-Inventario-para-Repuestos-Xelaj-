@@ -13,10 +13,25 @@ class AuthError extends Error {
   }
 }
 
-async function login(username, password) {
-  const usuario = await prisma.usuario.findUnique({ where: { username } });
+// El rol no vive en Usuario: se obtiene de la Plaza vigente del colaborador
+// (aquella sin Fecha_Fin). Si tuviera varias vigentes, se toma la más reciente.
+async function obtenerRolVigente(idColaborador) {
+  const plazaVigente = await prisma.plaza.findFirst({
+    where: { idColaborador, fechaFin: null },
+    orderBy: { fechaInicio: "desc" },
+    include: { rol: true },
+  });
 
-  if (!usuario) {
+  return plazaVigente?.rol ?? null;
+}
+
+async function login(username, password) {
+  const usuario = await prisma.usuario.findUnique({
+    where: { usuario: username },
+    include: { colaborador: true },
+  });
+
+  if (!usuario || !usuario.vigente) {
     throw new AuthError("Usuario o contraseña incorrectos", 401);
   }
 
@@ -27,14 +42,14 @@ async function login(username, password) {
     );
   }
 
-  const passwordValida = await bcrypt.compare(password, usuario.passwordHash);
+  const passwordValida = await bcrypt.compare(password, usuario.contrasena);
 
   if (!passwordValida) {
     const intentos = usuario.failedAttempts + 1;
     const alcanzoLimite = intentos >= MAX_LOGIN_ATTEMPTS;
 
     await prisma.usuario.update({
-      where: { id: usuario.id },
+      where: { idColaborador: usuario.idColaborador },
       data: {
         failedAttempts: alcanzoLimite ? 0 : intentos,
         lockedUntil: alcanzoLimite ? new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000) : null,
@@ -51,13 +66,19 @@ async function login(username, password) {
     throw new AuthError("Usuario o contraseña incorrectos", 401);
   }
 
+  const rol = await obtenerRolVigente(usuario.idColaborador);
+
+  if (!rol) {
+    throw new AuthError("El colaborador no tiene una plaza/rol vigente asignado", 403);
+  }
+
   await prisma.usuario.update({
-    where: { id: usuario.id },
+    where: { idColaborador: usuario.idColaborador },
     data: { failedAttempts: 0, lockedUntil: null },
   });
 
   const token = jwt.sign(
-    { sub: usuario.id, username: usuario.username, role: usuario.role },
+    { sub: usuario.idColaborador, username: usuario.usuario, role: rol.descripcion },
     process.env.JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN },
   );
@@ -65,11 +86,29 @@ async function login(username, password) {
   return {
     token,
     usuario: {
-      id: usuario.id,
-      username: usuario.username,
-      role: usuario.role,
+      idColaborador: usuario.idColaborador,
+      username: usuario.usuario,
+      nombreCompleto: `${usuario.colaborador.nombres} ${usuario.colaborador.primerApel}`,
+      role: rol.descripcion,
     },
   };
 }
 
-module.exports = { login, AuthError };
+async function obtenerPerfil(idColaborador) {
+  const colaborador = await prisma.colaborador.findUnique({ where: { idColaborador } });
+  const usuario = await prisma.usuario.findUnique({ where: { idColaborador } });
+  const rol = await obtenerRolVigente(idColaborador);
+
+  if (!colaborador || !usuario) {
+    throw new AuthError("Usuario no encontrado", 404);
+  }
+
+  return {
+    idColaborador,
+    username: usuario.usuario,
+    nombreCompleto: `${colaborador.nombres} ${colaborador.primerApel}`,
+    role: rol?.descripcion ?? null,
+  };
+}
+
+module.exports = { login, obtenerPerfil, AuthError };
