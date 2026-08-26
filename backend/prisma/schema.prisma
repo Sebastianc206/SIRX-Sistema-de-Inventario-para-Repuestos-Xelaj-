@@ -1,6 +1,15 @@
 // Esquema de base de datos de SIRX.
-// Los modelos restantes (Producto, Movimiento, Venta, etc.) se agregarán
-// según avancen los siguientes sprints del Product Backlog.
+// Refleja el modelo entidad-relación del proyecto: personal/acceso
+// (Colaborador, Rol, Plaza, Usuario), ubicación geográfica compartida
+// (Pais, Departamento, Municipio), catálogo (Articulo, Categoria, Marca,
+// Inventario, Modelo/Modelo_Compatible) y los dos flujos transaccionales
+// simétricos de compras (Proveedor, Compra_Maestro/Detalle) y ventas
+// (Cliente, Salida_Maestro/Detalle).
+//
+// Los nombres de tabla/columna se mapean explícitamente (@map/@@map) a
+// los identificadores en minúscula que Postgres genera a partir del
+// script original (los identificadores sin comillas se pliegan a
+// minúsculas), para que coincidan exactamente con la base ya definida.
 
 generator client {
   provider = "prisma-client-js"
@@ -11,18 +20,270 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  ADMINISTRADOR
-  OPERADOR
+model Colaborador {
+  idColaborador Int      @id @map("id_colaborador")
+  nombres       String
+  primerApel    String   @map("primer_apel")
+  segundoApel   String?  @map("segundo_apel")
+  correo        String?
+  numeroCelular String?  @map("numero_celular")
+  fecTransac    DateTime @default(now()) @map("fec_transac")
+
+  plazas            Plaza[]
+  ingresoPlataforma IngresoPlataforma?
+  usuario           Usuario?
+  ventasRealizadas  SalidaMaestro[]
+  comprasRealizadas CompraMaestro[]
+
+  @@map("colaborador")
 }
 
+model Rol {
+  idRol       Int    @id @map("id_rol")
+  descripcion String
+
+  plazas Plaza[]
+
+  @@map("rol")
+}
+
+model Plaza {
+  idPlaza       Int       @id @map("id_plaza")
+  fechaInicio   DateTime  @map("fecha_inicio")
+  fechaFin      DateTime? @map("fecha_fin")
+  fecTransac    DateTime  @default(now()) @map("fec_transac")
+  idRol         Int       @map("id_rol")
+  idColaborador Int       @map("id_colaborador")
+
+  rol         Rol         @relation(fields: [idRol], references: [idRol])
+  colaborador Colaborador @relation(fields: [idColaborador], references: [idColaborador])
+
+  @@map("plaza")
+}
+
+model Departamento {
+  idDepartamento Int    @id @map("id_departamento")
+  nombre         String
+
+  municipios  Municipio[]
+  proveedores Proveedor[]
+  clientes    Cliente[]
+
+  @@map("departamento")
+}
+
+model Municipio {
+  idMunicipio    Int    @id @map("id_municipio")
+  nombre         String
+  idDepartamento Int    @map("id_departamento")
+
+  departamento Departamento @relation(fields: [idDepartamento], references: [idDepartamento])
+  proveedores  Proveedor[]
+  clientes     Cliente[]
+
+  @@map("municipio")
+}
+
+model Pais {
+  idPais Int    @id @map("id_pais")
+  nombre String
+
+  proveedores Proveedor[]
+  clientes    Cliente[]
+
+  @@map("pais")
+}
+
+model Proveedor {
+  idProveedor    Int     @id @map("id_proveedor")
+  nombre         String
+  direccion      String?
+  vigente        Boolean @default(true)
+  contacto       String?
+  idMunicipio    Int?    @map("id_municipio")
+  idDepartamento Int?    @map("id_departamento")
+  idPais         Int     @map("id_pais")
+
+  municipio    Municipio?      @relation(fields: [idMunicipio], references: [idMunicipio])
+  departamento Departamento?   @relation(fields: [idDepartamento], references: [idDepartamento])
+  pais         Pais            @relation(fields: [idPais], references: [idPais])
+  compras      CompraMaestro[]
+
+  @@map("proveedor")
+}
+
+model Categoria {
+  idCategoria Int    @id @map("id_categoria")
+  descripcion String
+
+  articulos Articulo[]
+
+  @@map("categoria")
+}
+
+model Marca {
+  idMarca Int    @id @map("id_marca")
+  nombre  String
+
+  articulos Articulo[]
+
+  @@map("marca")
+}
+
+model Articulo {
+  sku              String  @id
+  nombre           String
+  inventarioMinimo Int     @default(0) @map("inventario_minimo")
+  precioVenta      Decimal @map("precio_venta")
+  estado           Boolean @default(true)
+  idCategoria      Int     @map("id_categoria")
+  idMarca          Int?    @map("id_marca")
+
+  categoria          Categoria          @relation(fields: [idCategoria], references: [idCategoria])
+  marca              Marca?             @relation(fields: [idMarca], references: [idMarca])
+  inventario         Inventario?
+  modelosCompatibles ModeloCompatible[]
+  salidaDetalles     SalidaDetalle[]
+  compraDetalles     CompraDetalle[]
+
+  @@map("articulo")
+}
+
+model Inventario {
+  cantidad   Int      @default(0)
+  fecTransac DateTime @default(now()) @map("fec_transac")
+  sku        String   @id
+
+  articulo Articulo @relation(fields: [sku], references: [sku])
+
+  @@map("inventario")
+}
+
+model Cliente {
+  idCliente      Int     @id @map("id_cliente")
+  nombre         String
+  direccion      String?
+  contacto       String?
+  idDepartamento Int?    @map("id_departamento")
+  idMunicipio    Int?    @map("id_municipio")
+  idPais         Int     @map("id_pais")
+
+  departamento Departamento?   @relation(fields: [idDepartamento], references: [idDepartamento])
+  municipio    Municipio?      @relation(fields: [idMunicipio], references: [idMunicipio])
+  pais         Pais            @relation(fields: [idPais], references: [idPais])
+  ventas       SalidaMaestro[]
+
+  @@map("cliente")
+}
+
+model TipoSalida {
+  idTipoSalida Int    @id @map("id_tipo_salida")
+  descripcion  String
+
+  salidas SalidaMaestro[]
+
+  @@map("tipo_salida")
+}
+
+model SalidaMaestro {
+  idVenta         Int       @id @map("id_venta")
+  fechaSalida     DateTime  @map("fecha_salida")
+  fechaPago       DateTime? @map("fecha_pago")
+  montoTotalVenta Decimal?  @map("monto_total_venta")
+  idColaborador   Int       @map("id_colaborador")
+  idCliente       Int?      @map("id_cliente")
+  idTipoSalida    Int       @map("id_tipo_salida")
+
+  colaborador Colaborador    @relation(fields: [idColaborador], references: [idColaborador])
+  cliente     Cliente?       @relation(fields: [idCliente], references: [idCliente])
+  tipoSalida  TipoSalida     @relation(fields: [idTipoSalida], references: [idTipoSalida])
+  detalle     SalidaDetalle?
+
+  @@map("salida_maestro")
+}
+
+model SalidaDetalle {
+  cantidad    Int
+  precioVenta Decimal?  @map("precio_venta")
+  fecCompra   DateTime  @map("fec_compra")
+  idSalida    Int       @id @map("id_salida")
+  sku         String
+
+  salidaMaestro SalidaMaestro @relation(fields: [idSalida], references: [idVenta])
+  articulo      Articulo      @relation(fields: [sku], references: [sku])
+
+  @@map("salida_detalle")
+}
+
+model CompraMaestro {
+  idCompra         Int       @id @map("id_compra")
+  fechaCompra      DateTime  @map("fecha_compra")
+  fechaPago        DateTime? @map("fecha_pago")
+  montoTotalCompra Decimal   @map("monto_total_compra")
+  idColaborador    Int       @map("id_colaborador")
+  idProveedor      Int       @map("id_proveedor")
+
+  colaborador Colaborador    @relation(fields: [idColaborador], references: [idColaborador])
+  proveedor   Proveedor      @relation(fields: [idProveedor], references: [idProveedor])
+  detalle     CompraDetalle?
+
+  @@map("compra_maestro")
+}
+
+model CompraDetalle {
+  precioCompra Decimal  @map("precio_compra")
+  cantidad     Int
+  fecCompra    DateTime @map("fec_compra")
+  idCompra     Int      @id @map("id_compra")
+  sku          String
+
+  compraMaestro CompraMaestro @relation(fields: [idCompra], references: [idCompra])
+  articulo      Articulo      @relation(fields: [sku], references: [sku])
+
+  @@map("compra_detalle")
+}
+
+model IngresoPlataforma {
+  fecIngreso    DateTime @map("fec_ingreso")
+  idColaborador Int      @id @map("id_colaborador")
+
+  colaborador Colaborador @relation(fields: [idColaborador], references: [idColaborador])
+
+  @@map("ingreso_plataforma")
+}
+
+// El login (HU-01) usa esta tabla. failedAttempts/lockedUntil se agregaron
+// sobre el modelo original para soportar el bloqueo temporal de cuenta.
 model Usuario {
-  id             Int       @id @default(autoincrement())
-  username       String    @unique
-  passwordHash   String
-  role           Role      @default(OPERADOR)
-  failedAttempts Int       @default(0)
-  lockedUntil    DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  usuario        String    @unique
+  contrasena     String    @map("contraseña")
+  vigente        Boolean   @default(true)
+  fecTransac     DateTime  @default(now()) @map("fec_transac")
+  idColaborador  Int       @id @map("id_colaborador")
+  failedAttempts Int       @default(0) @map("failed_attempts")
+  lockedUntil    DateTime? @map("locked_until")
+
+  colaborador Colaborador @relation(fields: [idColaborador], references: [idColaborador])
+
+  @@map("usuario")
+}
+
+model Modelo {
+  idModelo    Int    @id @map("id_modelo")
+  descripcion String
+
+  compatibles ModeloCompatible[]
+
+  @@map("modelo")
+}
+
+model ModeloCompatible {
+  sku      String
+  idModelo Int    @map("id_modelo")
+
+  articulo Articulo @relation(fields: [sku], references: [sku])
+  modelo   Modelo   @relation(fields: [idModelo], references: [idModelo])
+
+  @@id([sku, idModelo])
+  @@map("modelo_compatible")
 }
