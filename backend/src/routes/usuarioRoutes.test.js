@@ -137,6 +137,18 @@ describe("POST /api/usuarios — validación de entrada", () => {
     expect(respuesta.status).toBe(400);
     expect(mockUsuarioService.crearUsuarioOperador).not.toHaveBeenCalled();
   });
+
+  // T-104: política de contraseñas — longitud mínima ya no basta sin complejidad.
+  it("rechaza una contraseña larga pero sin complejidad suficiente", async () => {
+    const respuesta = await request(app)
+      .post("/api/usuarios")
+      .set("Authorization", `Bearer ${token("Administrador")}`)
+      .send({ ...usuarioValido, password: "todaminusculaslarga" });
+
+    expect(respuesta.status).toBe(400);
+    expect(respuesta.body.message).toMatch(/mayúscula/i);
+    expect(mockUsuarioService.crearUsuarioOperador).not.toHaveBeenCalled();
+  });
 });
 
 describe("GET /api/usuarios — Administrador", () => {

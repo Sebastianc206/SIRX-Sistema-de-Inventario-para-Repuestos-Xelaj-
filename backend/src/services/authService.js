@@ -2,10 +2,10 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const prisma = require("../utils/prismaClient");
 const { obtenerRolVigente } = require("../utils/rolVigente");
+const { obtenerJwtExpiresIn, obtenerJwtSecret } = require("../utils/jwtConfig");
 
 const MAX_LOGIN_ATTEMPTS = Number(process.env.MAX_LOGIN_ATTEMPTS || 3);
 const LOCKOUT_MINUTES = Number(process.env.LOCKOUT_MINUTES || 15);
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "30m";
 
 class AuthError extends Error {
   constructor(message, statusCode) {
@@ -68,8 +68,8 @@ async function login(username, password) {
 
   const token = jwt.sign(
     { sub: usuario.idColaborador, username: usuario.usuario, role: rol.descripcion },
-    process.env.JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN },
+    obtenerJwtSecret(),
+    { expiresIn: obtenerJwtExpiresIn() },
   );
 
   return {

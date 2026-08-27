@@ -13,8 +13,12 @@
 **Backend** (`backend/.env`, ver `backend/.env.example`):
 - `DATABASE_URL` — connection string de Neon.
 - `PORT` — puerto local (Render lo asigna automáticamente en producción).
-- `JWT_SECRET` — secreto para firmar tokens de sesión.
+- `JWT_SECRET` — secreto para firmar tokens de sesión. Mínimo 32 caracteres: el servidor no arranca si es más corto (T-105).
+- `JWT_EXPIRES_IN` — vida del token de sesión. Debe estar entre `1m` y `1h` (política de sesión corta, T-105); el servidor no arranca fuera de ese rango.
 - `CORS_ORIGIN` — URL del frontend desplegado.
+- `ADMIN_PASSWORD` / `OPERADOR_PASSWORD` — contraseñas de las cuentas de prueba que crea `npm run prisma:seed`. Requeridas (sin valor por defecto) y deben cumplir la política de contraseñas: mínimo 8 caracteres, con mayúscula, minúscula, número y símbolo (T-104).
+
+HTTPS (T-103) se fuerza a nivel de aplicación (redirección 301 automática de HTTP a HTTPS) para cualquier host que no sea `localhost`/`127.0.0.1`; Render además redirige HTTP→HTTPS en su propio proxy de entrada.
 
 **Frontend** (`frontend/.env`, ver `frontend/.env.example`):
 - `VITE_API_URL` — URL pública del backend desplegado en Render.
