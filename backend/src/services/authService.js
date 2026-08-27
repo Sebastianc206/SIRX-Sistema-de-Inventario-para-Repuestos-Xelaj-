@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const prisma = require("../utils/prismaClient");
+const { obtenerRolVigente } = require("../utils/rolVigente");
 
 const MAX_LOGIN_ATTEMPTS = Number(process.env.MAX_LOGIN_ATTEMPTS || 3);
 const LOCKOUT_MINUTES = Number(process.env.LOCKOUT_MINUTES || 15);
@@ -11,18 +12,6 @@ class AuthError extends Error {
     super(message);
     this.statusCode = statusCode;
   }
-}
-
-// El rol no vive en Usuario: se obtiene de la Plaza vigente del colaborador
-// (aquella sin Fecha_Fin). Si tuviera varias vigentes, se toma la más reciente.
-async function obtenerRolVigente(idColaborador) {
-  const plazaVigente = await prisma.plaza.findFirst({
-    where: { idColaborador, fechaFin: null },
-    orderBy: { fechaInicio: "desc" },
-    include: { rol: true },
-  });
-
-  return plazaVigente?.rol ?? null;
 }
 
 async function login(username, password) {
