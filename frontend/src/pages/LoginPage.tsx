@@ -2,25 +2,36 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { AuthApiError } from "@/services/authService";
+
+interface ErrorInfo {
+  message: string;
+  bloqueado: boolean;
+}
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [errorInfo, setErrorInfo] = useState<ErrorInfo | null>(null);
   const [enviando, setEnviando] = useState(false);
-  const { iniciarSesion } = useAuth();
+  const { iniciarSesion, logoutReason, limpiarMotivoCierre } = useAuth();
   const navigate = useNavigate();
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    setError(null);
+    setErrorInfo(null);
+    limpiarMotivoCierre();
     setEnviando(true);
 
     try {
       await iniciarSesion(username, password);
       navigate("/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo iniciar sesión");
+      if (err instanceof AuthApiError) {
+        setErrorInfo({ message: err.message, bloqueado: err.status === 423 });
+      } else {
+        setErrorInfo({ message: "No se pudo iniciar sesión", bloqueado: false });
+      }
     } finally {
       setEnviando(false);
     }
@@ -50,9 +61,19 @@ export default function LoginPage() {
           required
         />
 
-        {error && (
-          <p className="login-error" role="alert">
-            {error}
+        {!errorInfo && logoutReason === "inactivity" && (
+          <p className="login-info" role="status">
+            Tu sesión se cerró por inactividad. Inicia sesión nuevamente.
+          </p>
+        )}
+
+        {errorInfo && (
+          <p
+            className={errorInfo.bloqueado ? "login-error login-error--locked" : "login-error"}
+            role="alert"
+          >
+            {errorInfo.bloqueado && <span aria-hidden="true">🔒 </span>}
+            {errorInfo.message}
           </p>
         )}
 
