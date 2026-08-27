@@ -4,6 +4,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import LoginPage from "@/pages/LoginPage";
 import DashboardPage from "@/pages/DashboardPage";
 import UsuariosPage from "@/pages/UsuariosPage";
+import CategoriasPage from "@/pages/CategoriasPage";
 
 function App() {
   return (
@@ -24,6 +25,14 @@ function App() {
             element={
               <ProtectedRoute roles={["Administrador"]}>
                 <UsuariosPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/categorias"
+            element={
+              <ProtectedRoute roles={["Administrador"]}>
+                <CategoriasPage />
               </ProtectedRoute>
             }
           />
