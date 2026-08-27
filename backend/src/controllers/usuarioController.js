@@ -5,6 +5,14 @@ const {
   cambiarEstadoUsuario,
   listarUsuarios,
 } = require("../services/usuarioService");
+const {
+  esTextoValido,
+  esTextoOpcionalValido,
+  esCorreoOpcionalValido,
+  esTelefonoOpcionalValido,
+  esUsernameValido,
+  esPasswordValida,
+} = require("../utils/validadores");
 
 function manejarError(res, error) {
   if (error instanceof UsuarioError) {
@@ -28,29 +36,53 @@ async function crearController(req, res) {
   const { nombres, primerApel, segundoApel, correo, numeroCelular, username, password, idRol, vigente } =
     req.body;
 
-  if (!nombres || !primerApel || !username || !password || idRol === undefined) {
-    return res
-      .status(400)
-      .json({ message: "nombres, primerApel, username, password e idRol son requeridos" });
+  // T-099: se valida tipo, formato y longitud de cada campo, no solo que
+  // "exista" — un objeto/array truthy en el body no debe llegar a la
+  // capa de datos como si fuera texto.
+  if (!esTextoValido(nombres, { max: 100 }) || !esTextoValido(primerApel, { max: 100 })) {
+    return res.status(400).json({ message: "nombres y primerApel son requeridos (máximo 100 caracteres)" });
   }
 
-  if (typeof password !== "string" || password.length < 8) {
-    return res.status(400).json({ message: "La contraseña debe tener al menos 8 caracteres" });
+  if (!esTextoOpcionalValido(segundoApel, { max: 100 })) {
+    return res.status(400).json({ message: "segundoApel no puede superar 100 caracteres" });
   }
 
-  const idRolNumero = Number(idRol);
-  if (!Number.isInteger(idRolNumero)) {
+  if (!esCorreoOpcionalValido(correo)) {
+    return res.status(400).json({ message: "correo no tiene un formato válido" });
+  }
+
+  if (!esTelefonoOpcionalValido(numeroCelular)) {
+    return res.status(400).json({ message: "numeroCelular no tiene un formato válido" });
+  }
+
+  if (!esUsernameValido(username)) {
+    return res.status(400).json({
+      message: "username debe tener entre 3 y 30 caracteres, solo letras, números, puntos, guiones o guion bajo",
+    });
+  }
+
+  if (!esPasswordValida(password)) {
+    return res.status(400).json({ message: "La contraseña debe tener entre 8 y 72 caracteres" });
+  }
+
+  if (idRol === undefined || !Number.isInteger(Number(idRol))) {
     return res.status(400).json({ message: "idRol debe ser un número entero" });
   }
 
+  if (vigente !== undefined && typeof vigente !== "boolean") {
+    return res.status(400).json({ message: "vigente debe ser un booleano" });
+  }
+
+  const idRolNumero = Number(idRol);
+
   try {
     const usuario = await crearUsuarioOperador({
-      nombres,
-      primerApel,
-      segundoApel,
-      correo,
-      numeroCelular,
-      username,
+      nombres: nombres.trim(),
+      primerApel: primerApel.trim(),
+      segundoApel: segundoApel?.trim() || undefined,
+      correo: correo?.trim() || undefined,
+      numeroCelular: numeroCelular?.trim() || undefined,
+      username: username.trim(),
       password,
       idRol: idRolNumero,
       vigente,
