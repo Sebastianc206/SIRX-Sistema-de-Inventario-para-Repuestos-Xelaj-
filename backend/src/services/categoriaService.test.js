@@ -20,6 +20,7 @@ const {
   crearCategoria,
   editarCategoria,
   eliminarCategoria,
+  crearCategoriasEnLote,
 } = require("./categoriaService");
 
 describe("categoriaService", () => {
@@ -66,6 +67,26 @@ describe("categoriaService", () => {
   });
 
   describe("crearCategoria", () => {
+    it("rechaza una descripción vacía sin consultar la base de datos", async () => {
+      await expect(crearCategoria({ descripcion: "   " })).rejects.toMatchObject({
+        message: "descripcion es requerida (máximo 100 caracteres)",
+        statusCode: 400,
+      });
+      expect(prisma.categoria.findFirst).not.toHaveBeenCalled();
+    });
+
+    it("rechaza una descripción de más de 100 caracteres", async () => {
+      await expect(crearCategoria({ descripcion: "a".repeat(101) })).rejects.toMatchObject({
+        statusCode: 400,
+      });
+    });
+
+    it("rechaza un tipo distinto de string (T-099: no basta con truthy)", async () => {
+      await expect(crearCategoria({ descripcion: { esto: "no es texto" } })).rejects.toMatchObject({
+        statusCode: 400,
+      });
+    });
+
     it("crea la categoría con el siguiente id disponible", async () => {
       prisma.categoria.findFirst.mockResolvedValueOnce(null);
       prisma.$transaction.mockImplementationOnce(async (callback) => {
@@ -98,6 +119,13 @@ describe("categoriaService", () => {
   });
 
   describe("editarCategoria", () => {
+    it("rechaza una descripción vacía sin consultar la base de datos", async () => {
+      await expect(editarCategoria(1, { descripcion: "" })).rejects.toMatchObject({
+        statusCode: 400,
+      });
+      expect(prisma.categoria.findUnique).not.toHaveBeenCalled();
+    });
+
     it("lanza 404 si la categoría no existe", async () => {
       prisma.categoria.findUnique.mockResolvedValueOnce(null);
 
@@ -163,6 +191,54 @@ describe("categoriaService", () => {
       await eliminarCategoria(1);
 
       expect(prisma.categoria.delete).toHaveBeenCalledWith({ where: { idCategoria: 1 } });
+    });
+  });
+
+  describe("crearCategoriasEnLote", () => {
+    it("crea todas las filas cuando ninguna choca con una categoría existente", async () => {
+      prisma.categoria.findFirst.mockResolvedValue(null);
+      prisma.$transaction.mockImplementation(async (callback) => {
+        const tx = {
+          categoria: {
+            aggregate: jest.fn().mockResolvedValue({ _max: { idCategoria: 0 } }),
+            create: jest.fn().mockImplementation(({ data }) => Promise.resolve(data)),
+          },
+        };
+        return callback(tx);
+      });
+
+      const resultado = await crearCategoriasEnLote([
+        { numeroFila: 2, descripcion: "Frenos" },
+        { numeroFila: 3, descripcion: "Filtros" },
+      ]);
+
+      expect(resultado.creadas).toHaveLength(2);
+      expect(resultado.errores).toEqual([]);
+    });
+
+    it("reporta por fila los errores de negocio sin abortar el resto del archivo", async () => {
+      prisma.categoria.findFirst
+        .mockResolvedValueOnce({ idCategoria: 1, descripcion: "Frenos" }) // ya existe
+        .mockResolvedValueOnce(null); // Filtros sí es nueva
+      prisma.$transaction.mockImplementation(async (callback) => {
+        const tx = {
+          categoria: {
+            aggregate: jest.fn().mockResolvedValue({ _max: { idCategoria: 1 } }),
+            create: jest.fn().mockImplementation(({ data }) => Promise.resolve(data)),
+          },
+        };
+        return callback(tx);
+      });
+
+      const resultado = await crearCategoriasEnLote([
+        { numeroFila: 2, descripcion: "Frenos" },
+        { numeroFila: 3, descripcion: "Filtros" },
+      ]);
+
+      expect(resultado.creadas).toEqual([{ idCategoria: 2, descripcion: "Filtros" }]);
+      expect(resultado.errores).toEqual([
+        { fila: 2, descripcion: "Frenos", motivo: "Ya existe una categoría con esa descripción" },
+      ]);
     });
   });
 
