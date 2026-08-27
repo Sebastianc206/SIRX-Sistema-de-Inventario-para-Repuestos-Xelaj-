@@ -146,7 +146,9 @@ export function UsuarioFormModal({ usuario, onClose, onGuardado }: UsuarioFormMo
 
               <div className="login-field">
                 <label htmlFor="password">Contraseña</label>
-                <span className="modal-helper-text">Mínimo 8 caracteres</span>
+                <span className="modal-helper-text">
+                  Mínimo 8 caracteres, con mayúscula, minúscula, número y símbolo
+                </span>
                 <input
                   id="password"
                   type="password"
