@@ -62,7 +62,10 @@ async function crearController(req, res) {
   }
 
   if (!esPasswordValida(password)) {
-    return res.status(400).json({ message: "La contraseña debe tener entre 8 y 72 caracteres" });
+    return res.status(400).json({
+      message:
+        "La contraseña debe tener entre 8 y 72 caracteres e incluir mayúscula, minúscula, número y símbolo",
+    });
   }
 
   if (idRol === undefined || !Number.isInteger(Number(idRol))) {
