@@ -5,10 +5,31 @@ export default function DashboardPage() {
 
   return (
     <div className="dashboard-page">
-      <h1>Bienvenido, {usuario?.nombreCompleto}</h1>
-      <p>Usuario: {usuario?.username}</p>
-      <p>Rol: {usuario?.role}</p>
-      <button onClick={cerrarSesion}>Cerrar sesión</button>
+      <header className="dashboard-header">
+        <div className="login-brand">
+          <span className="login-brand-mark" aria-hidden="true">
+            SX
+          </span>
+          <div className="login-brand-text">
+            <h1>SIRX</h1>
+          </div>
+        </div>
+
+        <div className="dashboard-user">
+          <div className="dashboard-user-info">
+            <p className="dashboard-user-name">{usuario?.nombreCompleto}</p>
+            <p>
+              <span className="dashboard-role-badge">{usuario?.role}</span>
+            </p>
+          </div>
+          <button onClick={cerrarSesion}>Cerrar sesión</button>
+        </div>
+      </header>
+
+      <main className="dashboard-content">
+        <h2>Bienvenido, {usuario?.nombreCompleto}</h2>
+        <p>Usuario: {usuario?.username}</p>
+      </main>
     </div>
   );
 }
