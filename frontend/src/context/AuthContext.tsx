@@ -16,7 +16,7 @@ interface AuthContextValue {
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const TOKEN_KEY = "sirx_token";
+export const TOKEN_KEY = "sirx_token";
 
 // Tiempo sin actividad del usuario antes de cerrar la sesión automáticamente.
 // Configurable vía VITE_INACTIVITY_TIMEOUT_MINUTES (ver .env.example).

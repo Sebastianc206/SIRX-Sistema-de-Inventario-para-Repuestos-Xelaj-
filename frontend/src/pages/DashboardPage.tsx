@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function DashboardPage() {
@@ -14,6 +15,12 @@ export default function DashboardPage() {
             <h1>SIRX</h1>
           </div>
         </div>
+
+        {usuario?.role === "Administrador" && (
+          <nav className="dashboard-nav">
+            <Link to="/usuarios">Usuarios</Link>
+          </nav>
+        )}
 
         <div className="dashboard-user">
           <div className="dashboard-user-info">
