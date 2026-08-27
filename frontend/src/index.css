@@ -312,6 +312,12 @@ body {
   color: var(--color-neutral-500);
 }
 
+.dashboard-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
 .dashboard-nav a {
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
@@ -355,15 +361,17 @@ body {
   border-color: var(--color-info-border);
 }
 
-/* ---------- Usuarios (HU-02) ---------- */
+/* ---------- Pantallas de administración (listado + filtros + tabla) ----------
+   Compartido entre Usuarios (HU-02) y Categorías: mismo patrón visual de
+   toolbar + filtros + tabla + estado vacío, para no duplicar estilos. */
 
-.usuarios-page {
+.admin-page {
   max-width: 960px;
   margin: 0 auto;
   padding: var(--space-xl);
 }
 
-.usuarios-volver {
+.admin-volver {
   display: inline-block;
   margin-bottom: var(--space-md);
   font-size: var(--text-sm);
@@ -371,11 +379,11 @@ body {
   text-decoration: none;
 }
 
-.usuarios-volver:hover {
+.admin-volver:hover {
   color: var(--color-primary-700);
 }
 
-.usuarios-toolbar {
+.admin-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -383,14 +391,14 @@ body {
   margin-bottom: var(--space-lg);
 }
 
-.usuarios-toolbar h2 {
+.admin-toolbar h2 {
   margin: 0;
   font-size: var(--text-xl);
   font-weight: var(--font-semibold);
   color: var(--color-neutral-900);
 }
 
-.usuarios-toolbar button {
+.admin-toolbar button {
   padding: 0.6rem var(--space-md);
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
@@ -403,18 +411,18 @@ body {
   transition: background-color 0.15s ease;
 }
 
-.usuarios-toolbar button:hover {
+.admin-toolbar button:hover {
   background: var(--color-primary-700);
 }
 
-.usuarios-filtros {
+.admin-filtros {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-lg);
   margin-bottom: var(--space-lg);
 }
 
-.usuarios-filtros label {
+.admin-filtros label {
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
@@ -423,7 +431,8 @@ body {
   color: var(--color-neutral-700);
 }
 
-.usuarios-filtros select {
+.admin-filtros select,
+.admin-filtros input {
   padding: 0.5rem var(--space-sm);
   font-size: var(--text-sm);
   font-family: inherit;
@@ -433,7 +442,18 @@ body {
   border-radius: var(--radius-sm);
 }
 
-.usuarios-estado-vacio {
+.admin-filtros input {
+  min-width: 220px;
+}
+
+.admin-filtros input:focus-visible,
+.admin-filtros select:focus-visible {
+  outline: none;
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 3px var(--color-primary-100);
+}
+
+.admin-estado-vacio {
   padding: var(--space-xl);
   text-align: center;
   color: var(--color-neutral-500);
@@ -442,28 +462,28 @@ body {
   border-radius: var(--radius-md);
 }
 
-.usuarios-tabla-wrap {
+.admin-tabla-wrap {
   overflow-x: auto;
   background: var(--color-neutral-0);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
 }
 
-.usuarios-tabla {
+.admin-tabla {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--text-sm);
 }
 
-.usuarios-tabla th,
-.usuarios-tabla td {
+.admin-tabla th,
+.admin-tabla td {
   padding: var(--space-sm) var(--space-md);
   text-align: left;
   border-bottom: 1px solid var(--color-neutral-200);
   white-space: nowrap;
 }
 
-.usuarios-tabla th {
+.admin-tabla th {
   font-weight: var(--font-medium);
   color: var(--color-neutral-500);
   text-transform: uppercase;
@@ -471,20 +491,21 @@ body {
   letter-spacing: 0.05em;
 }
 
-.usuarios-tabla tbody tr:hover {
+.admin-tabla tbody tr:hover {
   background: var(--color-neutral-50);
 }
 
-.usuarios-tabla tbody tr:last-child td {
+.admin-tabla tbody tr:last-child td {
   border-bottom: none;
 }
 
-.usuarios-acciones {
+.admin-acciones {
   display: flex;
+  align-items: center;
   gap: var(--space-sm);
 }
 
-.usuarios-acciones button {
+.admin-acciones button {
   padding: 0.375rem var(--space-sm);
   font-size: var(--text-xs);
   font-weight: var(--font-medium);
@@ -496,7 +517,7 @@ body {
   cursor: pointer;
 }
 
-.usuarios-acciones button:disabled {
+.admin-acciones button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -530,7 +551,7 @@ body {
   background: var(--color-neutral-100);
 }
 
-/* ---------- Botón secundario (reusable fuera de .login-page/.dashboard-header) ---------- */
+/* ---------- Botones secundario / destructivo (reusable fuera de .login-page/.dashboard-header) ---------- */
 
 .btn-secondary {
   color: var(--color-neutral-700) !important;
@@ -540,6 +561,16 @@ body {
 
 .btn-secondary:hover:not(:disabled) {
   background: var(--color-neutral-100) !important;
+}
+
+.btn-danger {
+  color: var(--color-neutral-0) !important;
+  background: var(--color-error-fg) !important;
+  border: 1px solid transparent !important;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #991b1b !important;
 }
 
 /* ---------- Modal (crear/editar usuario) ---------- */
@@ -579,7 +610,8 @@ body {
   gap: var(--space-md);
 }
 
-.modal-card input {
+.modal-card input,
+.modal-card select {
   padding: 0.625rem var(--space-sm);
   font-size: var(--text-base);
   font-family: inherit;
@@ -589,10 +621,17 @@ body {
   border-radius: var(--radius-sm);
 }
 
-.modal-card input:focus-visible {
+.modal-card input:focus-visible,
+.modal-card select:focus-visible {
   outline: none;
   border-color: var(--color-primary-500);
   box-shadow: 0 0 0 3px var(--color-primary-100);
+}
+
+.modal-card select:disabled {
+  color: var(--color-neutral-500);
+  background: var(--color-neutral-50);
+  cursor: not-allowed;
 }
 
 .modal-card fieldset {

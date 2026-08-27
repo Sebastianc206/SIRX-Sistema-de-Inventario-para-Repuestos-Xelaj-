@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { AppHeader } from "@/components/AppHeader";
 import { UsuarioFormModal } from "@/components/UsuarioFormModal";
 import {
   cambiarEstadoUsuario,
@@ -14,7 +14,6 @@ import type { UsuarioAdmin } from "@/types/usuario";
 type ModalState = { modo: "crear" } | { modo: "editar"; usuario: UsuarioAdmin } | null;
 
 export default function UsuariosPage() {
-  const { usuario: sesion, cerrarSesion } = useAuth();
   const [usuarios, setUsuarios] = useState<UsuarioAdmin[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,38 +68,19 @@ export default function UsuariosPage() {
 
   return (
     <div className="dashboard-page">
-      <header className="dashboard-header">
-        <div className="login-brand">
-          <span className="login-brand-mark" aria-hidden="true">
-            SX
-          </span>
-          <div className="login-brand-text">
-            <h1>SIRX</h1>
-          </div>
-        </div>
+      <AppHeader />
 
-        <div className="dashboard-user">
-          <div className="dashboard-user-info">
-            <p className="dashboard-user-name">{sesion?.nombreCompleto}</p>
-            <p>
-              <span className="dashboard-role-badge">{sesion?.role}</span>
-            </p>
-          </div>
-          <button onClick={cerrarSesion}>Cerrar sesión</button>
-        </div>
-      </header>
-
-      <main className="usuarios-page">
-        <Link to="/" className="usuarios-volver">
+      <main className="admin-page">
+        <Link to="/" className="admin-volver">
           ← Volver al panel
         </Link>
 
-        <div className="usuarios-toolbar">
+        <div className="admin-toolbar">
           <h2>Usuarios</h2>
           <button onClick={() => setModal({ modo: "crear" })}>+ Nuevo usuario</button>
         </div>
 
-        <div className="usuarios-filtros">
+        <div className="admin-filtros">
           <label>
             Estado
             <select
@@ -145,14 +125,14 @@ export default function UsuariosPage() {
         )}
 
         {cargando ? (
-          <p className="usuarios-estado-vacio">Cargando usuarios...</p>
+          <p className="admin-estado-vacio">Cargando usuarios...</p>
         ) : usuarios.length === 0 ? (
-          <p className="usuarios-estado-vacio">
+          <p className="admin-estado-vacio">
             No hay usuarios que coincidan con los filtros seleccionados.
           </p>
         ) : (
-          <div className="usuarios-tabla-wrap">
-            <table className="usuarios-tabla">
+          <div className="admin-tabla-wrap">
+            <table className="admin-tabla">
               <thead>
                 <tr>
                   <th>Usuario</th>
@@ -181,7 +161,7 @@ export default function UsuariosPage() {
                         {fila.vigente ? "Activo" : "Inactivo"}
                       </span>
                     </td>
-                    <td className="usuarios-acciones">
+                    <td className="admin-acciones">
                       <button
                         type="button"
                         className="btn-secondary"
