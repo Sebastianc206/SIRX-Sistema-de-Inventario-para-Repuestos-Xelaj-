@@ -1,10 +1,24 @@
 const prisma = require("../utils/prismaClient");
 const { siguienteId } = require("../utils/siguienteId");
+const { esTextoValido } = require("../utils/validadores");
+
+const DESCRIPCION_MAX_LENGTH = 100;
 
 class CategoriaError extends Error {
   constructor(message, statusCode) {
     super(message);
     this.statusCode = statusCode;
+  }
+}
+
+// T-099: la validación vive en el servicio (no solo en el controlador) para
+// que cualquier caller —incluida la carga masiva— quede protegido igual.
+function validarDescripcion(descripcion) {
+  if (!esTextoValido(descripcion, { max: DESCRIPCION_MAX_LENGTH })) {
+    throw new CategoriaError(
+      `descripcion es requerida (máximo ${DESCRIPCION_MAX_LENGTH} caracteres)`,
+      400,
+    );
   }
 }
 
@@ -42,6 +56,7 @@ async function obtenerCategoriaPorId(idCategoria) {
 }
 
 async function crearCategoria({ descripcion }) {
+  validarDescripcion(descripcion);
   const descripcionLimpia = descripcion.trim();
 
   if (await existeDescripcion(descripcionLimpia)) {
@@ -57,6 +72,8 @@ async function crearCategoria({ descripcion }) {
 }
 
 async function editarCategoria(idCategoria, { descripcion }) {
+  validarDescripcion(descripcion);
+
   const categoria = await prisma.categoria.findUnique({ where: { idCategoria } });
   if (!categoria) {
     throw new CategoriaError("Categoría no encontrada", 404);
@@ -95,6 +112,32 @@ async function eliminarCategoria(idCategoria) {
   await prisma.categoria.delete({ where: { idCategoria } });
 }
 
+// T-101: carga masiva. Cada fila se crea con la misma validación y las
+// mismas reglas de negocio que crearCategoria (duplicados incluidos) — una
+// fila inválida no aborta el resto del archivo, se reporta individualmente.
+async function crearCategoriasEnLote(filas) {
+  const creadas = [];
+  const errores = [];
+
+  for (const fila of filas) {
+    try {
+      // eslint-disable-next-line no-await-in-loop -- cada fila depende de
+      // las anteriores (duplicados dentro del mismo archivo), no se puede
+      // paralelizar sin volver a implementar la validación de existencia.
+      const categoria = await crearCategoria({ descripcion: fila.descripcion });
+      creadas.push(categoria);
+    } catch (error) {
+      errores.push({
+        fila: fila.numeroFila,
+        descripcion: fila.descripcion,
+        motivo: error instanceof CategoriaError ? error.message : "Error interno del servidor",
+      });
+    }
+  }
+
+  return { creadas, errores };
+}
+
 module.exports = {
   CategoriaError,
   listarCategorias,
@@ -102,4 +145,5 @@ module.exports = {
   crearCategoria,
   editarCategoria,
   eliminarCategoria,
+  crearCategoriasEnLote,
 };

@@ -37,6 +37,20 @@ async function upsertUsuarioConPlaza({ idColaborador, nombres, primerApel, rol, 
   });
 }
 
+// T-102: sin valores de contraseña hardcodeados como fallback. Si el .env
+// no define ADMIN_PASSWORD/OPERADOR_PASSWORD, el seed falla explícitamente
+// en vez de crear cuentas con una contraseña conocida de antemano por
+// cualquiera que lea el repositorio.
+function requerirVariableEntorno(nombre) {
+  const valor = process.env[nombre];
+  if (!valor) {
+    throw new Error(
+      `Falta la variable de entorno ${nombre}. Definila en backend/.env antes de correr el seed (ver backend/.env.example).`,
+    );
+  }
+  return valor;
+}
+
 async function main() {
   await prisma.rol.upsert({
     where: { idRol: ROL_ADMINISTRADOR.idRol },
@@ -55,7 +69,7 @@ async function main() {
     primerApel: "Sistema",
     rol: ROL_ADMINISTRADOR,
     username: "admin",
-    password: process.env.ADMIN_PASSWORD || "Admin123!",
+    password: requerirVariableEntorno("ADMIN_PASSWORD"),
   });
 
   await upsertUsuarioConPlaza({
@@ -64,7 +78,7 @@ async function main() {
     primerApel: "Demo",
     rol: ROL_OPERADOR,
     username: "operador",
-    password: process.env.OPERADOR_PASSWORD || "Operador123!",
+    password: requerirVariableEntorno("OPERADOR_PASSWORD"),
   });
 
   console.log("Usuarios de prueba listos: admin / operador");
