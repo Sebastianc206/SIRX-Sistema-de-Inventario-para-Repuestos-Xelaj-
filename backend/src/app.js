@@ -6,6 +6,7 @@ const authRoutes = require("./routes/authRoutes");
 const usuarioRoutes = require("./routes/usuarioRoutes");
 const categoriaRoutes = require("./routes/categoriaRoutes");
 const articuloRoutes = require("./routes/articuloRoutes");
+const proveedorRoutes = require("./routes/proveedorRoutes");
 const catalogosAuxiliaresRoutes = require("./routes/catalogosAuxiliaresRoutes");
 
 // T-105: fail fast. Si JWT_SECRET/JWT_EXPIRES_IN no cumplen la política de
@@ -35,6 +36,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/usuarios", usuarioRoutes);
 app.use("/api/categorias", categoriaRoutes);
 app.use("/api/repuestos", articuloRoutes);
+app.use("/api/proveedores", proveedorRoutes);
 app.use("/api/catalogos", catalogosAuxiliaresRoutes);
 
 module.exports = app;

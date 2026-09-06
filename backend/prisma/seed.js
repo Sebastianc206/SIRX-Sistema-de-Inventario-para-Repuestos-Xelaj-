@@ -7,6 +7,32 @@ const prisma = new PrismaClient();
 const ROL_ADMINISTRADOR = { idRol: 1, descripcion: "Administrador" };
 const ROL_OPERADOR = { idRol: 2, descripcion: "Operador" };
 
+// HU-26: Proveedor.idPais es obligatorio, así que sin datos geográficos de
+// referencia no se puede crear ni un solo proveedor. No existe (todavía)
+// una historia que pida administrar país/departamento/municipio desde la
+// aplicación, así que se cargan acá — un conjunto mínimo centrado en
+// Quetzaltenango (sede de Repuestos Xelajú), no el catálogo completo de
+// Guatemala. Se puede ampliar con otro seed más adelante si hace falta.
+const PAISES = [
+  { idPais: 1, nombre: "Guatemala" },
+  { idPais: 2, nombre: "México" },
+  { idPais: 3, nombre: "El Salvador" },
+  { idPais: 4, nombre: "Honduras" },
+  { idPais: 5, nombre: "Estados Unidos" },
+];
+
+const DEPARTAMENTOS = [
+  { idDepartamento: 1, nombre: "Quetzaltenango" },
+  { idDepartamento: 2, nombre: "Guatemala" },
+  { idDepartamento: 3, nombre: "San Marcos" },
+];
+
+const MUNICIPIOS = [
+  { idMunicipio: 1, nombre: "Quetzaltenango", idDepartamento: 1 },
+  { idMunicipio: 2, nombre: "Guatemala", idDepartamento: 2 },
+  { idMunicipio: 3, nombre: "San Marcos", idDepartamento: 3 },
+];
+
 async function upsertUsuarioConPlaza({ idColaborador, nombres, primerApel, rol, username, password }) {
   await prisma.colaborador.upsert({
     where: { idColaborador },
@@ -76,6 +102,28 @@ async function main() {
     create: ROL_OPERADOR,
   });
 
+  for (const pais of PAISES) {
+    // eslint-disable-next-line no-await-in-loop -- lista fija y pequeña, no
+    // hay nada que paralelizar de forma segura frente a upserts por id.
+    await prisma.pais.upsert({ where: { idPais: pais.idPais }, update: {}, create: pais });
+  }
+  for (const departamento of DEPARTAMENTOS) {
+    // eslint-disable-next-line no-await-in-loop
+    await prisma.departamento.upsert({
+      where: { idDepartamento: departamento.idDepartamento },
+      update: {},
+      create: departamento,
+    });
+  }
+  for (const municipio of MUNICIPIOS) {
+    // eslint-disable-next-line no-await-in-loop
+    await prisma.municipio.upsert({
+      where: { idMunicipio: municipio.idMunicipio },
+      update: {},
+      create: municipio,
+    });
+  }
+
   await upsertUsuarioConPlaza({
     idColaborador: 1,
     nombres: "Admin",
@@ -95,6 +143,7 @@ async function main() {
   });
 
   console.log("Usuarios de prueba listos: admin / operador");
+  console.log("Datos geográficos de referencia (país/departamento/municipio) listos.");
 }
 
 main()

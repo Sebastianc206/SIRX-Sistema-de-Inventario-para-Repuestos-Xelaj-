@@ -1,4 +1,10 @@
-const { listarMarcas, listarProveedores, listarModelos } = require("../services/catalogosAuxiliaresService");
+const {
+  listarMarcas,
+  listarModelos,
+  listarPaises,
+  listarDepartamentos,
+  listarMunicipios,
+} = require("../services/catalogosAuxiliaresService");
 
 function manejarError(res, error) {
   console.error(error);
@@ -13,14 +19,6 @@ async function listarMarcasController(_req, res) {
   }
 }
 
-async function listarProveedoresController(_req, res) {
-  try {
-    return res.json({ proveedores: await listarProveedores() });
-  } catch (error) {
-    return manejarError(res, error);
-  }
-}
-
 async function listarModelosController(_req, res) {
   try {
     return res.json({ modelos: await listarModelos() });
@@ -29,4 +27,34 @@ async function listarModelosController(_req, res) {
   }
 }
 
-module.exports = { listarMarcasController, listarProveedoresController, listarModelosController };
+async function listarPaisesController(_req, res) {
+  try {
+    return res.json({ paises: await listarPaises() });
+  } catch (error) {
+    return manejarError(res, error);
+  }
+}
+
+async function listarDepartamentosController(_req, res) {
+  try {
+    return res.json({ departamentos: await listarDepartamentos() });
+  } catch (error) {
+    return manejarError(res, error);
+  }
+}
+
+async function listarMunicipiosController(_req, res) {
+  try {
+    return res.json({ municipios: await listarMunicipios() });
+  } catch (error) {
+    return manejarError(res, error);
+  }
+}
+
+module.exports = {
+  listarMarcasController,
+  listarModelosController,
+  listarPaisesController,
+  listarDepartamentosController,
+  listarMunicipiosController,
+};
