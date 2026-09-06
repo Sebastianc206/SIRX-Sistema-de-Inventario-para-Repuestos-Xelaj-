@@ -74,6 +74,32 @@ function esPasswordValida(valor, { min = 8, max = 72 } = {}) {
   return tieneComplejidadSuficiente(valor);
 }
 
+// HU-04: precios/stock. Number(valor) en vez de typeof === "number" porque
+// el body de un POST/PUT llega como JSON y ahí sí viajan números de verdad,
+// pero se acepta también el string "123.45" para no ser más estricto de lo
+// necesario si algún formulario lo manda como texto.
+function esNumeroFinito(valor) {
+  if (typeof valor === "number") return Number.isFinite(valor);
+  if (typeof valor === "string" && valor.trim() !== "") return Number.isFinite(Number(valor));
+  return false;
+}
+
+function esNumeroPositivo(valor) {
+  return esNumeroFinito(valor) && Number(valor) > 0;
+}
+
+function esEnteroNoNegativo(valor) {
+  return esNumeroFinito(valor) && Number.isInteger(Number(valor)) && Number(valor) >= 0;
+}
+
+// SKU: código de producto sin espacios, para que sea seguro usarlo tal cual
+// en una URL (GET/PUT /api/repuestos/:sku).
+const SKU_REGEX = /^[A-Za-z0-9._-]+$/;
+
+function esSkuValido(valor, { max = 50 } = {}) {
+  return esTexto(valor) && valor.trim().length > 0 && valor.trim().length <= max && SKU_REGEX.test(valor.trim());
+}
+
 module.exports = {
   esTexto,
   esTextoValido,
@@ -84,4 +110,8 @@ module.exports = {
   esTelefonoOpcionalValido,
   esUsernameValido,
   esPasswordValida,
+  esNumeroFinito,
+  esNumeroPositivo,
+  esEnteroNoNegativo,
+  esSkuValido,
 };

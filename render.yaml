@@ -1,0 +1,33 @@
+# Blueprint de Render para el backend de SIRX.
+# Al conectar este repo en Render ("New +" → "Blueprint"), este archivo
+# crea el Web Service automáticamente con el build/start/migraciones
+# correctos — ver docs/DEPLOYMENT.md para el resto de variables (DATABASE_URL,
+# JWT_SECRET, CORS_ORIGIN, etc.) que Render pide llenar a mano por ser secretas.
+services:
+  - type: web
+    name: sirx-backend
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install && npx prisma generate
+    startCommand: npx prisma migrate deploy && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 30m
+      - key: MAX_LOGIN_ATTEMPTS
+        value: 3
+      - key: LOCKOUT_MINUTES
+        value: 15
+      - key: CORS_ORIGIN
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: OPERADOR_PASSWORD
+        sync: false

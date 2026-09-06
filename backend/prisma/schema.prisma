@@ -108,6 +108,7 @@ model Proveedor {
   departamento Departamento?   @relation(fields: [idDepartamento], references: [idDepartamento])
   pais         Pais            @relation(fields: [idPais], references: [idPais])
   compras      CompraMaestro[]
+  articulos    Articulo[]
 
   @@map("proveedor")
 }
@@ -130,17 +131,25 @@ model Marca {
   @@map("marca")
 }
 
+// precioCosto/ubicacion/idProveedor no estaban en el modelo original: se
+// agregaron para HU-04 (gestión del catálogo). precioCosto y el proveedor
+// preferido de un repuesto son datos sensibles — el rol Operador nunca los
+// recibe (ver articuloService.js, formatearArticulo).
 model Articulo {
   sku              String  @id
   nombre           String
   inventarioMinimo Int     @default(0) @map("inventario_minimo")
   precioVenta      Decimal @map("precio_venta")
+  precioCosto      Decimal @map("precio_costo")
+  ubicacion        String?
   estado           Boolean @default(true)
   idCategoria      Int     @map("id_categoria")
   idMarca          Int?    @map("id_marca")
+  idProveedor      Int?    @map("id_proveedor")
 
   categoria          Categoria          @relation(fields: [idCategoria], references: [idCategoria])
   marca              Marca?             @relation(fields: [idMarca], references: [idMarca])
+  proveedor          Proveedor?         @relation(fields: [idProveedor], references: [idProveedor])
   inventario         Inventario?
   modelosCompatibles ModeloCompatible[]
   salidaDetalles     SalidaDetalle[]

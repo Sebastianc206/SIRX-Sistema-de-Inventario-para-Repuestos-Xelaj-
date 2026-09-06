@@ -32,14 +32,14 @@ SIRX es una aplicación web de inventario para un único negocio, una sola sucur
 
 Mapeo directo del alcance del Acta a la estructura de carpetas:
 
-| Módulo del Acta | Frontend | Backend |
-|---|---|---|
-| Autenticación y usuarios (roles) | `src/pages`, `src/hooks` | `src/routes`, `src/controllers`, `src/middlewares` |
-| Catálogo de repuestos (CRUD) | `src/pages`, `src/components` | `src/routes`, `src/controllers`, `prisma/schema.prisma` |
-| Movimientos de inventario | `src/pages`, `src/services` | `src/routes`, `src/controllers`, `src/services` |
-| Alertas de stock mínimo | `src/components` | `src/services` |
-| Registro de ventas | `src/pages` | `src/routes`, `src/controllers` |
-| Panel de reportes / dashboard | `src/pages` | `src/routes`, `src/controllers` |
+| Módulo del Acta | Estado | Frontend | Backend |
+|---|---|---|---|
+| Autenticación y usuarios (roles) | ✅ Hecho (HU-01, HU-02) | `pages/LoginPage`, `pages/UsuariosPage`, `hooks/useAuth` | `routes/authRoutes`, `routes/usuarioRoutes`, `middlewares/authMiddleware`, `middlewares/roleMiddleware` |
+| Catálogo de repuestos (CRUD) | ✅ Hecho (HU-04) | `pages/RepuestosPage`, `components/RepuestoFormModal` | `routes/articuloRoutes`, `services/articuloService` |
+| Movimientos de inventario | ⏳ Pendiente | — | — |
+| Alertas de stock mínimo | ⏳ Pendiente (el dato ya existe: `Articulo.inventarioMinimo` + `Inventario.cantidad`) | — | — |
+| Registro de ventas | ⏳ Pendiente | — | — |
+| Panel de reportes / dashboard | ⏳ Pendiente | — | — |
 
 ## Fuera de alcance (según Acta)
 
