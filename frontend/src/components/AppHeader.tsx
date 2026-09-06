@@ -25,6 +25,7 @@ export function AppHeader() {
           <>
             <Link to="/usuarios">Usuarios</Link>
             <Link to="/categorias">Categorías</Link>
+            <Link to="/proveedores">Proveedores</Link>
           </>
         )}
       </nav>
