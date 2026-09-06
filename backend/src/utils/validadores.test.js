@@ -96,15 +96,31 @@ describe("esUsernameValido", () => {
 });
 
 describe("esPasswordValida", () => {
-  it("acepta contraseñas entre 8 y 72 caracteres", () => {
+  it("acepta una contraseña que cumple longitud y complejidad (T-104)", () => {
     expect(esPasswordValida("Mostrador123!")).toBe(true);
   });
 
   it("rechaza contraseñas demasiado cortas", () => {
-    expect(esPasswordValida("abc123")).toBe(false);
+    expect(esPasswordValida("Abc123!")).toBe(false); // 7 caracteres
   });
 
   it("rechaza contraseñas de más de 72 caracteres (límite de bcrypt)", () => {
-    expect(esPasswordValida("a".repeat(73))).toBe(false);
+    expect(esPasswordValida(`Aa1!${"a".repeat(70)}`)).toBe(false);
+  });
+
+  it("rechaza una contraseña larga sin mayúscula", () => {
+    expect(esPasswordValida("mostrador123!")).toBe(false);
+  });
+
+  it("rechaza una contraseña sin minúscula", () => {
+    expect(esPasswordValida("MOSTRADOR123!")).toBe(false);
+  });
+
+  it("rechaza una contraseña sin número", () => {
+    expect(esPasswordValida("Mostrador!!")).toBe(false);
+  });
+
+  it("rechaza una contraseña sin símbolo", () => {
+    expect(esPasswordValida("Mostrador123")).toBe(false);
   });
 });

@@ -1,5 +1,6 @@
 const bcrypt = require("bcryptjs");
 const { PrismaClient } = require("@prisma/client");
+const { esPasswordValida } = require("../src/utils/validadores");
 
 const prisma = new PrismaClient();
 
@@ -51,6 +52,18 @@ function requerirVariableEntorno(nombre) {
   return valor;
 }
 
+// T-104: la política de contraseñas aplica también a las cuentas de
+// prueba — nada distinto a lo que crearUsuarioOperador exige para
+// cualquier usuario creado por la app.
+function requerirPasswordSegura(nombreVariable, valor) {
+  if (!esPasswordValida(valor)) {
+    throw new Error(
+      `${nombreVariable} no cumple la política de contraseñas (mínimo 8 caracteres, con mayúscula, minúscula, número y símbolo).`,
+    );
+  }
+  return valor;
+}
+
 async function main() {
   await prisma.rol.upsert({
     where: { idRol: ROL_ADMINISTRADOR.idRol },
@@ -69,7 +82,7 @@ async function main() {
     primerApel: "Sistema",
     rol: ROL_ADMINISTRADOR,
     username: "admin",
-    password: requerirVariableEntorno("ADMIN_PASSWORD"),
+    password: requerirPasswordSegura("ADMIN_PASSWORD", requerirVariableEntorno("ADMIN_PASSWORD")),
   });
 
   await upsertUsuarioConPlaza({
@@ -78,7 +91,7 @@ async function main() {
     primerApel: "Demo",
     rol: ROL_OPERADOR,
     username: "operador",
-    password: requerirVariableEntorno("OPERADOR_PASSWORD"),
+    password: requerirPasswordSegura("OPERADOR_PASSWORD", requerirVariableEntorno("OPERADOR_PASSWORD")),
   });
 
   console.log("Usuarios de prueba listos: admin / operador");

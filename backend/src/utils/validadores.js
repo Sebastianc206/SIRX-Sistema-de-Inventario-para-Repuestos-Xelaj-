@@ -49,10 +49,29 @@ function esUsernameValido(valor, { min = 3, max = 30 } = {}) {
   return limpio.length >= min && limpio.length <= max && USERNAME_REGEX.test(limpio);
 }
 
-// bcrypt trunca en 72 bytes: una contraseña más larga no suma seguridad y
-// solo sirve para golpear el hashing con payloads enormes.
+// T-104: política de contraseñas. bcrypt trunca en 72 bytes: una
+// contraseña más larga no suma seguridad y solo sirve para golpear el
+// hashing con payloads enormes. La complejidad exige mayúscula, minúscula,
+// número y símbolo — las contraseñas de ejemplo del proyecto
+// ("Admin123!", "Operador123!") ya cumplen esta regla.
+const MAYUSCULA_REGEX = /[A-ZÁÉÍÓÚÑ]/;
+const MINUSCULA_REGEX = /[a-záéíóúñ]/;
+const NUMERO_REGEX = /[0-9]/;
+const SIMBOLO_REGEX = /[^A-Za-zÁÉÍÓÚÑáéíóúñ0-9]/;
+
+function tieneComplejidadSuficiente(valor) {
+  return (
+    MAYUSCULA_REGEX.test(valor) &&
+    MINUSCULA_REGEX.test(valor) &&
+    NUMERO_REGEX.test(valor) &&
+    SIMBOLO_REGEX.test(valor)
+  );
+}
+
 function esPasswordValida(valor, { min = 8, max = 72 } = {}) {
-  return esTexto(valor) && valor.length >= min && valor.length <= max;
+  if (!esTexto(valor)) return false;
+  if (valor.length < min || valor.length > max) return false;
+  return tieneComplejidadSuficiente(valor);
 }
 
 module.exports = {

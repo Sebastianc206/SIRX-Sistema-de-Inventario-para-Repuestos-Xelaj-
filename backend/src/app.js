@@ -1,10 +1,26 @@
 const express = require("express");
 const cors = require("cors");
+const forzarHttps = require("./middlewares/httpsMiddleware");
+const { obtenerJwtSecret, obtenerJwtExpiresIn } = require("./utils/jwtConfig");
 const authRoutes = require("./routes/authRoutes");
 const usuarioRoutes = require("./routes/usuarioRoutes");
 const categoriaRoutes = require("./routes/categoriaRoutes");
 
+// T-105: fail fast. Si JWT_SECRET/JWT_EXPIRES_IN no cumplen la política de
+// sesión corta, el servidor ni siquiera termina de arrancar — mejor eso
+// que descubrirlo en el primer login en producción.
+obtenerJwtSecret();
+obtenerJwtExpiresIn();
+
 const app = express();
+
+// Necesario para que Express confíe en X-Forwarded-Proto/Host detrás del
+// proxy de Render (ver comentario en httpsMiddleware.js).
+app.set("trust proxy", 1);
+
+// T-103: antes que cualquier otra cosa, incluido CORS — una petición HTTP
+// insegura se redirige a HTTPS sin llegar a procesarse.
+app.use(forzarHttps);
 
 app.use(cors({ origin: process.env.CORS_ORIGIN }));
 app.use(express.json());
