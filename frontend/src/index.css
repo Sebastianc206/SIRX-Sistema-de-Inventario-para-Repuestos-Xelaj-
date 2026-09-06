@@ -415,6 +415,14 @@ body {
   background: var(--color-primary-700);
 }
 
+/* Agrupa varias acciones del toolbar (ej. "Carga masiva" + "+ Nuevo
+   repuesto") sin romper el space-between de .admin-toolbar. */
+.admin-toolbar-acciones {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
 .admin-filtros {
   display: flex;
   flex-wrap: wrap;

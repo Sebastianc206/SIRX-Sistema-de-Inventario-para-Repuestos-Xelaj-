@@ -5,7 +5,9 @@ const {
   crearArticulo,
   editarArticulo,
   cambiarEstadoArticulo,
+  crearArticulosEnLote,
 } = require("../services/articuloService");
+const { generarPlantillaRepuestos, extraerFilasDeExcel } = require("../utils/excelRepuestos");
 
 function manejarError(res, error) {
   if (error instanceof ArticuloError) {
@@ -92,10 +94,45 @@ async function cambiarEstadoController(req, res) {
   }
 }
 
+// T-042: plantilla descargable, siempre con las columnas y el formato
+// esperado tal como hoy los valida crearArticulo/crearArticulosEnLote —
+// si algún día cambian los campos requeridos, esta plantilla cambia con ellos.
+async function descargarPlantillaController(_req, res) {
+  try {
+    const buffer = await generarPlantillaRepuestos();
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+    res.setHeader("Content-Disposition", 'attachment; filename="plantilla-repuestos.xlsx"');
+    return res.send(Buffer.from(buffer));
+  } catch (error) {
+    return manejarError(res, error);
+  }
+}
+
+async function cargaMasivaController(req, res) {
+  if (!req.file) {
+    return res.status(400).json({ message: "Debes adjuntar un archivo Excel (.xlsx)" });
+  }
+
+  let filas;
+  try {
+    filas = await extraerFilasDeExcel(req.file.buffer);
+  } catch (error) {
+    return manejarError(res, error);
+  }
+
+  const resultado = await crearArticulosEnLote(filas);
+  return res.json(resultado);
+}
+
 module.exports = {
   listarController,
   obtenerController,
   crearController,
   editarController,
   cambiarEstadoController,
+  descargarPlantillaController,
+  cargaMasivaController,
 };
