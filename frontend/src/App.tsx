@@ -6,6 +6,7 @@ import DashboardPage from "@/pages/DashboardPage";
 import UsuariosPage from "@/pages/UsuariosPage";
 import CategoriasPage from "@/pages/CategoriasPage";
 import RepuestosPage from "@/pages/RepuestosPage";
+import ProveedoresPage from "@/pages/ProveedoresPage";
 
 function App() {
   return (
@@ -46,6 +47,16 @@ function App() {
             element={
               <ProtectedRoute>
                 <RepuestosPage />
+              </ProtectedRoute>
+            }
+          />
+          {/* HU-26, criterio 2: solo Administrador — Operador ni siquiera
+              puede llegar a esta ruta (ProtectedRoute lo manda al dashboard). */}
+          <Route
+            path="/proveedores"
+            element={
+              <ProtectedRoute roles={["Administrador"]}>
+                <ProveedoresPage />
               </ProtectedRoute>
             }
           />

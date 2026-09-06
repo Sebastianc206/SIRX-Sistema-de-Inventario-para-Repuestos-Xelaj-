@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from "react";
-import { listarProveedores } from "@/services/catalogosAuxiliaresService";
-import type { Proveedor } from "@/types/catalogosAuxiliares";
+import { listarProveedores } from "@/services/proveedorService";
+import type { Proveedor } from "@/types/proveedor";
 
 interface ProveedorSelectProps {
   value: number | undefined;
@@ -11,7 +11,8 @@ interface ProveedorSelectProps {
 // Proveedor preferido del repuesto: opcional, y es uno de los dos datos
 // (junto con precioCosto) que el rol Operador nunca ve — coherente con que
 // este selector solo se use dentro del formulario de creación/edición, que
-// ya está restringido a Administrador por la ruta.
+// ya está restringido a Administrador por la ruta. Desde HU-26, Proveedor
+// tiene su propio CRUD real (antes era un listado auxiliar de solo lectura).
 export function ProveedorSelect({ value, onChange, disabled }: ProveedorSelectProps) {
   const selectId = useId();
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
@@ -22,6 +23,10 @@ export function ProveedorSelect({ value, onChange, disabled }: ProveedorSelectPr
     listarProveedores()
       .then((datos) => {
         if (!cancelado) setProveedores(datos);
+      })
+      .catch(() => {
+        // El selector es best-effort: si falla la carga, simplemente queda
+        // sin opciones (proveedor sigue siendo un campo opcional del repuesto).
       })
       .finally(() => {
         if (!cancelado) setCargando(false);

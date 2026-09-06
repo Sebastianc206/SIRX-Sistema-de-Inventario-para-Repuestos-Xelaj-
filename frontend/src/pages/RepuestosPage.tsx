@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { AppHeader } from "@/components/AppHeader";
+import { CargaMasivaRepuestosModal } from "@/components/CargaMasivaRepuestosModal";
 import { PaginationControls } from "@/components/PaginationControls";
 import { RepuestoFormModal } from "@/components/RepuestoFormModal";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,6 +30,7 @@ export default function RepuestosPage() {
   const [error, setError] = useState<string | null>(null);
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState>(null);
+  const [mostrarCargaMasiva, setMostrarCargaMasiva] = useState(false);
   const [skuAConfirmar, setSkuAConfirmar] = useState<string | null>(null);
   const [skuEnProceso, setSkuEnProceso] = useState<string | null>(null);
 
@@ -70,6 +72,12 @@ export default function RepuestosPage() {
     cargarRepuestos();
   }
 
+  function handleCargaMasivaCompleta() {
+    // El modal se queda abierto mostrando el resumen (T-048); solo se
+    // refresca el listado detrás para que ya reflejen las filas creadas.
+    cargarRepuestos();
+  }
+
   async function handleCambiarEstado(repuesto: Repuesto) {
     setSkuEnProceso(repuesto.sku);
     setError(null);
@@ -101,7 +109,16 @@ export default function RepuestosPage() {
         <div className="admin-toolbar">
           <h2>Catálogo de repuestos</h2>
           {esAdministrador && (
-            <button onClick={() => setModal({ modo: "crear" })}>+ Nuevo repuesto</button>
+            <div className="admin-toolbar-acciones">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setMostrarCargaMasiva(true)}
+              >
+                Carga masiva (Excel)
+              </button>
+              <button onClick={() => setModal({ modo: "crear" })}>+ Nuevo repuesto</button>
+            </div>
           )}
         </div>
 
@@ -259,6 +276,13 @@ export default function RepuestosPage() {
           repuesto={modal.modo === "editar" ? modal.repuesto : null}
           onClose={() => setModal(null)}
           onGuardado={handleGuardado}
+        />
+      )}
+
+      {mostrarCargaMasiva && (
+        <CargaMasivaRepuestosModal
+          onClose={() => setMostrarCargaMasiva(false)}
+          onCargaCompleta={handleCargaMasivaCompleta}
         />
       )}
     </div>

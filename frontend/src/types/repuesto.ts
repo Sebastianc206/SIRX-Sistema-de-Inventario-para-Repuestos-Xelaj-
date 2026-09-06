@@ -51,3 +51,21 @@ export interface FiltrosRepuestos {
   busqueda?: string;
   estado?: "activo" | "inactivo";
 }
+
+// HU-05: resumen que devuelve la carga masiva — filas exitosas y filas con
+// error (con su motivo), tal como pide el criterio de aceptación 4.
+export interface FilaCargaMasivaError {
+  fila: number;
+  sku: string;
+  motivo: string;
+}
+
+export interface FilaCargaMasivaCreada {
+  sku: string;
+  nombre: string;
+}
+
+export interface CargaMasivaResultado {
+  creadas: FilaCargaMasivaCreada[];
+  errores: FilaCargaMasivaError[];
+}

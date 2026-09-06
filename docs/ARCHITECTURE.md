@@ -35,7 +35,8 @@ Mapeo directo del alcance del Acta a la estructura de carpetas:
 | Módulo del Acta | Estado | Frontend | Backend |
 |---|---|---|---|
 | Autenticación y usuarios (roles) | ✅ Hecho (HU-01, HU-02) | `pages/LoginPage`, `pages/UsuariosPage`, `hooks/useAuth` | `routes/authRoutes`, `routes/usuarioRoutes`, `middlewares/authMiddleware`, `middlewares/roleMiddleware` |
-| Catálogo de repuestos (CRUD) | ✅ Hecho (HU-04) | `pages/RepuestosPage`, `components/RepuestoFormModal` | `routes/articuloRoutes`, `services/articuloService` |
+| Catálogo de repuestos (CRUD + carga masiva) | ✅ Hecho (HU-04, HU-05) | `pages/RepuestosPage`, `components/RepuestoFormModal`, `components/CargaMasivaRepuestosModal` | `routes/articuloRoutes`, `services/articuloService`, `utils/excelRepuestos` |
+| Gestión de proveedores | ✅ Hecho (HU-26) | `pages/ProveedoresPage`, `components/ProveedorFormModal` | `routes/proveedorRoutes`, `services/proveedorService` |
 | Movimientos de inventario | ⏳ Pendiente | — | — |
 | Alertas de stock mínimo | ⏳ Pendiente (el dato ya existe: `Articulo.inventarioMinimo` + `Inventario.cantidad`) | — | — |
 | Registro de ventas | ⏳ Pendiente | — | — |

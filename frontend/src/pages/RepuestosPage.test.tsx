@@ -25,8 +25,11 @@ vi.mock("@/services/repuestoService", async () => {
 
 vi.mock("@/services/catalogosAuxiliaresService", () => ({
   listarMarcas: vi.fn().mockResolvedValue([]),
-  listarProveedores: vi.fn().mockResolvedValue([]),
   listarModelos: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("@/services/proveedorService", () => ({
+  listarProveedores: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock("@/services/categoriaService", () => ({
@@ -117,6 +120,21 @@ describe("RepuestosPage", () => {
     expect(screen.getByRole("button", { name: "+ Nuevo repuesto" })).toBeInTheDocument();
   });
 
+  it("T-047: Administrador ve el botón de carga masiva y abre el modal", async () => {
+    comoAdministrador();
+    mockListarRepuestos.mockResolvedValueOnce({
+      articulos: [REPUESTO_ADMIN],
+      paginacion: { pagina: 1, porPagina: 20, total: 1, totalPaginas: 1 },
+    });
+
+    renderPage();
+    await screen.findByText("Pastillas de freno");
+
+    await userEvent.click(screen.getByRole("button", { name: /carga masiva/i }));
+
+    expect(screen.getByRole("dialog", { name: /carga masiva de repuestos/i })).toBeInTheDocument();
+  });
+
   it("T-034/T-037: Operador no ve columnas ni botones de precio de costo/proveedor/edición", async () => {
     comoOperador();
     mockListarRepuestos.mockResolvedValueOnce({
@@ -132,6 +150,7 @@ describe("RepuestosPage", () => {
     expect(screen.queryByText("Repuestos Guate S.A.")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "+ Nuevo repuesto" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /carga masiva/i })).not.toBeInTheDocument();
   });
 
   it("T-035: pide confirmación antes de dar de baja y luego cambia el estado", async () => {
