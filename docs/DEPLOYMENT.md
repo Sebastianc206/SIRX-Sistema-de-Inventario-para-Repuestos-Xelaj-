@@ -23,12 +23,17 @@ HTTPS (T-103) se fuerza a nivel de aplicación (redirección 301 automática de 
 **Frontend** (`frontend/.env`, ver `frontend/.env.example`):
 - `VITE_API_URL` — URL pública del backend desplegado en Render.
 
+## Archivos de despliegue ya incluidos en el repo
+
+- [`render.yaml`](../render.yaml) (raíz del repo): blueprint de Render para el backend. Al conectar el repo con "New +" → "Blueprint" en Render, crea el Web Service con el build/start correctos automáticamente (`npm install && npx prisma generate` como build, `npx prisma migrate deploy && npm start` como start — las migraciones se aplican solas en cada deploy). Solo hay que rellenar a mano las variables marcadas como secretas (`DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGIN`, `ADMIN_PASSWORD`, `OPERADOR_PASSWORD`).
+- [`frontend/vercel.json`](../frontend/vercel.json): build command y output directory explícitos, más una regla de *rewrite* que manda cualquier ruta a `index.html` — imprescindible porque el frontend usa rutas del lado del cliente (React Router); sin esto, refrescar la página en `/repuestos` (por ejemplo) daría 404.
+
 ## Pasos de despliegue inicial
 
 1. Crear el proyecto en Neon y obtener el `DATABASE_URL`.
-2. En Render: nuevo Web Service apuntando a `backend/`, configurar variables de entorno, deploy.
-3. Ejecutar migraciones de Prisma contra la base de Neon (`npx prisma migrate deploy`) una vez existan modelos.
-4. En Vercel: nuevo proyecto apuntando a `frontend/`, configurar `VITE_API_URL` con la URL de Render, deploy.
+2. En Render: "New +" → "Blueprint", seleccionar este repo (usa `render.yaml` automáticamente). Rellenar las variables de entorno marcadas como secretas y hacer deploy — la migración corre sola en el `startCommand`.
+3. Ejecutar `npm run prisma:seed` una vez (localmente, apuntando el `DATABASE_URL` a Neon, o vía la consola de Render) para crear los usuarios iniciales.
+4. En Vercel: "Add New" → "Project", seleccionar este repo con root directory `frontend/` (usa `vercel.json` automáticamente). Configurar `VITE_API_URL` con la URL pública de Render, deploy.
 5. Configurar dominio propio (opcional, ver Acta — costo aproximado de Q100/año) apuntando al proyecto de Vercel.
 
 ## Configuración de protección de ramas y CODEOWNERS en GitHub

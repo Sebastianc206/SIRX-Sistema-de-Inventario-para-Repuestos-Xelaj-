@@ -18,12 +18,16 @@ export function AppHeader() {
         </div>
       </div>
 
-      {usuario?.role === "Administrador" && (
-        <nav className="dashboard-nav">
-          <Link to="/usuarios">Usuarios</Link>
-          <Link to="/categorias">Categorías</Link>
-        </nav>
-      )}
+      <nav className="dashboard-nav">
+        {/* Repuestos: cualquier rol autenticado (HU-04, criterio 5). */}
+        <Link to="/repuestos">Repuestos</Link>
+        {usuario?.role === "Administrador" && (
+          <>
+            <Link to="/usuarios">Usuarios</Link>
+            <Link to="/categorias">Categorías</Link>
+          </>
+        )}
+      </nav>
 
       <div className="dashboard-user">
         <div className="dashboard-user-info">

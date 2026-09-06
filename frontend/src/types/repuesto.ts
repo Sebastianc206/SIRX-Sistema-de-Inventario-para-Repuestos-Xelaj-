@@ -1,13 +1,53 @@
-// Forma de los datos del formulario de repuesto (T-058). Refleja los campos
-// propios de Articulo en el esquema (prisma/schema.prisma) que el usuario
-// captura a mano; sku/nombre/precioVenta/inventarioMinimo/idCategoria.
-// El backend y la pantalla de listado de repuestos (CRUD de Articulo) son
-// tareas aparte, todavía no implementadas — este formulario queda listo
-// para conectarse a ese endpoint cuando exista.
+// Forma de los datos del catálogo de repuestos (HU-04). precioCosto y
+// proveedor son opcionales en el tipo porque el backend los omite por
+// completo de la respuesta cuando el rol autenticado es Operador (T-031) —
+// no llegan como null, directamente no existen en el objeto.
+export interface Repuesto {
+  sku: string;
+  nombre: string;
+  precioVenta: number;
+  precioCosto?: number;
+  inventarioMinimo: number;
+  ubicacion: string | null;
+  estado: boolean;
+  categoria: { idCategoria: number; descripcion: string } | null;
+  marca: { idMarca: number; nombre: string } | null;
+  proveedor?: { idProveedor: number; nombre: string } | null;
+  modelosCompatibles: { idModelo: number; descripcion: string }[];
+  cantidadInventario: number;
+}
+
 export interface RepuestoFormInput {
   sku: string;
   nombre: string;
   precioVenta: number;
+  precioCosto: number;
   inventarioMinimo: number;
+  ubicacion?: string;
   idCategoria: number;
+  idMarca?: number;
+  idProveedor?: number;
+  idsModelosCompatibles?: number[];
+}
+
+// PUT admite actualizar un subconjunto de campos (sku nunca cambia, va en la URL).
+export type EditarRepuestoInput = Partial<Omit<RepuestoFormInput, "sku">>;
+
+export interface Paginacion {
+  pagina: number;
+  porPagina: number;
+  total: number;
+  totalPaginas: number;
+}
+
+export interface ListarRepuestosResultado {
+  articulos: Repuesto[];
+  paginacion: Paginacion;
+}
+
+export interface FiltrosRepuestos {
+  pagina?: number;
+  porPagina?: number;
+  busqueda?: string;
+  estado?: "activo" | "inactivo";
 }
