@@ -1,5 +1,6 @@
 import { TOKEN_KEY } from "@/context/AuthContext";
 import type {
+  CargaMasivaResultado,
   EditarRepuestoInput,
   FiltrosRepuestos,
   ListarRepuestosResultado,
@@ -83,4 +84,41 @@ export async function cambiarEstadoRepuesto(sku: string, estado: boolean): Promi
   });
   const data = await manejarRespuesta<{ articulo: Repuesto }>(response);
   return data.articulo;
+}
+
+// T-047: la plantilla es un endpoint autenticado (no un <a href> plano), así
+// que hay que descargarla como blob y disparar la descarga en el cliente.
+export async function descargarPlantillaRepuestos(): Promise<void> {
+  const response = await fetch(`${API_URL}/api/repuestos/plantilla-carga-masiva`, {
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new RepuestoApiError(data.message || "No se pudo descargar la plantilla", response.status);
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const enlace = document.createElement("a");
+  enlace.href = url;
+  enlace.download = "plantilla-repuestos.xlsx";
+  document.body.appendChild(enlace);
+  enlace.click();
+  enlace.remove();
+  URL.revokeObjectURL(url);
+}
+
+export async function cargarRepuestosMasivo(archivo: File): Promise<CargaMasivaResultado> {
+  const formData = new FormData();
+  formData.append("archivo", archivo);
+
+  const response = await fetch(`${API_URL}/api/repuestos/carga-masiva`, {
+    method: "POST",
+    // Sin Content-Type explícito: el navegador arma el boundary del
+    // multipart él mismo a partir del FormData.
+    headers: authHeaders(),
+    body: formData,
+  });
+  return manejarRespuesta<CargaMasivaResultado>(response);
 }

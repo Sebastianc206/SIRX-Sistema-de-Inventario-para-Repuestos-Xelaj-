@@ -5,9 +5,9 @@ jest.mock("../utils/prismaClient", () => ({
     count: jest.fn(),
     update: jest.fn(),
   },
-  categoria: { findUnique: jest.fn() },
-  marca: { findUnique: jest.fn() },
-  proveedor: { findUnique: jest.fn() },
+  categoria: { findUnique: jest.fn(), findFirst: jest.fn() },
+  marca: { findUnique: jest.fn(), findFirst: jest.fn() },
+  proveedor: { findUnique: jest.fn(), findFirst: jest.fn() },
   modelo: { findMany: jest.fn() },
   $transaction: jest.fn(),
 }));
@@ -20,6 +20,7 @@ const {
   crearArticulo,
   editarArticulo,
   cambiarEstadoArticulo,
+  crearArticulosEnLote,
 } = require("./articuloService");
 
 const ARTICULO_BASE = {
@@ -261,6 +262,74 @@ describe("articuloService", () => {
         where: { sku: "FRE-001" },
         data: { estado: false },
       });
+    });
+  });
+
+  describe("crearArticulosEnLote (HU-05)", () => {
+    const filaValida = {
+      numeroFila: 2,
+      sku: "FRE-010",
+      nombre: "Balatas",
+      categoria: "Frenos",
+      marca: undefined,
+      precioVenta: 100,
+      precioCosto: 60,
+      inventarioMinimo: 2,
+      ubicacion: undefined,
+      proveedor: undefined,
+    };
+
+    function mockearCreacionExitosa() {
+      prisma.categoria.findFirst.mockResolvedValueOnce({ idCategoria: 1 }); // resolverCategoriaPorNombre
+      prisma.categoria.findUnique.mockResolvedValueOnce({ idCategoria: 1 }); // validarReferencias (dentro de crearArticulo)
+      prisma.articulo.findUnique.mockResolvedValueOnce(null); // sku no existe todavía
+      prisma.$transaction.mockImplementationOnce(async (callback) =>
+        callback({
+          articulo: { create: jest.fn() },
+          inventario: { create: jest.fn() },
+          modeloCompatible: { createMany: jest.fn() },
+        }),
+      );
+      prisma.articulo.findUnique.mockResolvedValueOnce({ ...ARTICULO_BASE, sku: "FRE-010" }); // obtenerArticuloPorSku final
+    }
+
+    it("T-044: resuelve la categoría por nombre y crea la fila", async () => {
+      mockearCreacionExitosa();
+
+      const resultado = await crearArticulosEnLote([filaValida]);
+
+      expect(prisma.categoria.findFirst).toHaveBeenCalledWith({
+        where: { descripcion: { equals: "Frenos", mode: "insensitive" } },
+      });
+      expect(resultado.creadas).toEqual([{ sku: "FRE-010", nombre: "Pastillas de freno" }]);
+      expect(resultado.errores).toEqual([]);
+    });
+
+    it("T-044: reporta la fila cuya categoría no existe, sin intentar crearla", async () => {
+      prisma.categoria.findFirst.mockResolvedValueOnce(null);
+
+      const resultado = await crearArticulosEnLote([{ ...filaValida, categoria: "NoExiste" }]);
+
+      expect(resultado.creadas).toEqual([]);
+      expect(resultado.errores).toEqual([
+        { fila: 2, sku: "FRE-010", motivo: 'La categoría "NoExiste" no existe' },
+      ]);
+      expect(prisma.articulo.findUnique).not.toHaveBeenCalled();
+    });
+
+    it("T-045: una fila inválida no bloquea la carga del resto (criterio 3)", async () => {
+      prisma.categoria.findFirst.mockResolvedValueOnce(null); // fila 1: falla
+      mockearCreacionExitosa(); // fila 2: éxito
+
+      const filaInvalida = { ...filaValida, numeroFila: 2, sku: "FRE-009", categoria: "NoExiste" };
+      const filaBuena = { ...filaValida, numeroFila: 3, sku: "FRE-010" };
+
+      const resultado = await crearArticulosEnLote([filaInvalida, filaBuena]);
+
+      expect(resultado.errores).toEqual([
+        { fila: 2, sku: "FRE-009", motivo: 'La categoría "NoExiste" no existe' },
+      ]);
+      expect(resultado.creadas).toEqual([{ sku: "FRE-010", nombre: "Pastillas de freno" }]);
     });
   });
 

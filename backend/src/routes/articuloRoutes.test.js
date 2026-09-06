@@ -4,6 +4,7 @@ const mockArticuloService = {
   crearArticulo: jest.fn(),
   editarArticulo: jest.fn(),
   cambiarEstadoArticulo: jest.fn(),
+  crearArticulosEnLote: jest.fn(),
 };
 
 jest.mock("../services/articuloService", () => ({
@@ -18,8 +19,31 @@ jest.mock("../services/articuloService", () => ({
 
 const jwt = require("jsonwebtoken");
 const request = require("supertest");
+const ExcelJS = require("exceljs");
 const app = require("../app");
 const { ArticuloError } = require("../services/articuloService");
+
+// HU-05: igual que en categoriaRoutes.test.js, solo se mockea el servicio —
+// el parseo real del .xlsx (excelRepuestos.js) se ejercita de verdad acá.
+async function crearBufferExcel(filas, { encabezados } = {}) {
+  const workbook = new ExcelJS.Workbook();
+  const hoja = workbook.addWorksheet("Repuestos");
+  hoja.addRow(
+    encabezados ?? [
+      "SKU",
+      "Nombre",
+      "Categoria",
+      "Marca",
+      "Precio Venta",
+      "Precio Costo",
+      "Inventario Minimo",
+      "Ubicacion",
+      "Proveedor",
+    ],
+  );
+  filas.forEach((fila) => hoja.addRow(fila));
+  return workbook.xlsx.writeBuffer();
+}
 
 function token(role) {
   return jwt.sign({ sub: 1, username: "usuario-test", role }, process.env.JWT_SECRET, {
@@ -195,6 +219,121 @@ describe("Rutas /api/repuestos", () => {
 
       expect(respuesta.status).toBe(200);
       expect(mockArticuloService.cambiarEstadoArticulo).toHaveBeenCalledWith("FRE-001", false);
+    });
+  });
+
+  describe("GET /api/repuestos/plantilla-carga-masiva", () => {
+    it("T-042: rechaza a Operador con 403", async () => {
+      const respuesta = await request(app)
+        .get("/api/repuestos/plantilla-carga-masiva")
+        .set("Authorization", `Bearer ${token("Operador")}`);
+
+      expect(respuesta.status).toBe(403);
+    });
+
+    it("T-042: entrega un .xlsx descargable a Administrador", async () => {
+      const respuesta = await request(app)
+        .get("/api/repuestos/plantilla-carga-masiva")
+        .set("Authorization", `Bearer ${token("Administrador")}`);
+
+      expect(respuesta.status).toBe(200);
+      expect(respuesta.headers["content-type"]).toMatch(/spreadsheetml/);
+      expect(respuesta.headers["content-disposition"]).toMatch(/attachment/);
+      expect(respuesta.headers["content-disposition"]).toMatch(/plantilla-repuestos\.xlsx/);
+    });
+  });
+
+  describe("POST /api/repuestos/carga-masiva", () => {
+    it("T-039-like: rechaza a Operador con 403 sin llegar a leer el archivo", async () => {
+      const buffer = await crearBufferExcel([["FRE-001", "Pastillas", "Frenos", "", 100, 60, 5, "", ""]]);
+
+      const respuesta = await request(app)
+        .post("/api/repuestos/carga-masiva")
+        .set("Authorization", `Bearer ${token("Operador")}`)
+        .attach("archivo", buffer, "repuestos.xlsx");
+
+      expect(respuesta.status).toBe(403);
+      expect(mockArticuloService.crearArticulosEnLote).not.toHaveBeenCalled();
+    });
+
+    it("rechaza con 400 si no se adjunta ningún archivo", async () => {
+      const respuesta = await request(app)
+        .post("/api/repuestos/carga-masiva")
+        .set("Authorization", `Bearer ${token("Administrador")}`);
+
+      expect(respuesta.status).toBe(400);
+      expect(mockArticuloService.crearArticulosEnLote).not.toHaveBeenCalled();
+    });
+
+    it("T-049: rechaza con 400 un archivo que no es .xlsx", async () => {
+      const respuesta = await request(app)
+        .post("/api/repuestos/carga-masiva")
+        .set("Authorization", `Bearer ${token("Administrador")}`)
+        .attach("archivo", Buffer.from("no soy un excel"), {
+          filename: "repuestos.txt",
+          contentType: "text/plain",
+        });
+
+      expect(respuesta.status).toBe(400);
+      expect(mockArticuloService.crearArticulosEnLote).not.toHaveBeenCalled();
+    });
+
+    it("T-049: rechaza con 400 un .xlsx sin las columnas requeridas", async () => {
+      const buffer = await crearBufferExcel([["FRE-001", "Pastillas"]], {
+        encabezados: ["SKU", "Nombre"],
+      });
+
+      const respuesta = await request(app)
+        .post("/api/repuestos/carga-masiva")
+        .set("Authorization", `Bearer ${token("Administrador")}`)
+        .attach("archivo", buffer, "repuestos.xlsx");
+
+      expect(respuesta.status).toBe(400);
+      expect(mockArticuloService.crearArticulosEnLote).not.toHaveBeenCalled();
+    });
+
+    it("T-043/T-046: parsea el .xlsx real y delega la creación en el servicio", async () => {
+      const buffer = await crearBufferExcel([
+        ["FRE-001", "Pastillas", "Frenos", "", 150.5, 90, 5, "", ""],
+        ["FRE-002", "Disco", "Frenos", "", 200, 120, 3, "", ""],
+      ]);
+      mockArticuloService.crearArticulosEnLote.mockResolvedValueOnce({
+        creadas: [
+          { sku: "FRE-001", nombre: "Pastillas" },
+          { sku: "FRE-002", nombre: "Disco" },
+        ],
+        errores: [],
+      });
+
+      const respuesta = await request(app)
+        .post("/api/repuestos/carga-masiva")
+        .set("Authorization", `Bearer ${token("Administrador")}`)
+        .attach("archivo", buffer, "repuestos.xlsx");
+
+      expect(respuesta.status).toBe(200);
+      expect(mockArticuloService.crearArticulosEnLote).toHaveBeenCalledWith([
+        expect.objectContaining({ numeroFila: 2, sku: "FRE-001", categoria: "Frenos" }),
+        expect.objectContaining({ numeroFila: 3, sku: "FRE-002" }),
+      ]);
+      expect(respuesta.body.creadas).toHaveLength(2);
+    });
+
+    it("T-046: propaga el resumen con filas exitosas y filas con error", async () => {
+      const buffer = await crearBufferExcel([["FRE-003", "X", "NoExiste", "", 1, 1, 0, "", ""]]);
+      mockArticuloService.crearArticulosEnLote.mockResolvedValueOnce({
+        creadas: [],
+        errores: [{ fila: 2, sku: "FRE-003", motivo: 'La categoría "NoExiste" no existe' }],
+      });
+
+      const respuesta = await request(app)
+        .post("/api/repuestos/carga-masiva")
+        .set("Authorization", `Bearer ${token("Administrador")}`)
+        .attach("archivo", buffer, "repuestos.xlsx");
+
+      expect(respuesta.status).toBe(200);
+      expect(respuesta.body.errores).toEqual([
+        { fila: 2, sku: "FRE-003", motivo: 'La categoría "NoExiste" no existe' },
+      ]);
     });
   });
 });

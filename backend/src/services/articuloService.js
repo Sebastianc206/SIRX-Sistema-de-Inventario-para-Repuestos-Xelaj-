@@ -279,6 +279,82 @@ async function editarArticulo(sku, datos) {
   return obtenerArticuloPorSku(sku, { ocultarDatosSensibles: false });
 }
 
+// HU-05: en la plantilla de carga masiva, categoría/marca/proveedor se
+// identifican por nombre (una persona llenando un Excel no conoce los ids
+// internos) — hay que resolverlos a id antes de poder reusar crearArticulo.
+async function resolverCategoriaPorNombre(nombre) {
+  const categoria = await prisma.categoria.findFirst({
+    where: { descripcion: { equals: nombre.trim(), mode: "insensitive" } },
+  });
+  if (!categoria) {
+    throw new ArticuloError(`La categoría "${nombre.trim()}" no existe`, 400);
+  }
+  return categoria.idCategoria;
+}
+
+async function resolverMarcaPorNombre(nombre) {
+  const marca = await prisma.marca.findFirst({
+    where: { nombre: { equals: nombre.trim(), mode: "insensitive" } },
+  });
+  if (!marca) {
+    throw new ArticuloError(`La marca "${nombre.trim()}" no existe`, 400);
+  }
+  return marca.idMarca;
+}
+
+async function resolverProveedorPorNombre(nombre) {
+  const proveedor = await prisma.proveedor.findFirst({
+    where: { nombre: { equals: nombre.trim(), mode: "insensitive" } },
+  });
+  if (!proveedor) {
+    throw new ArticuloError(`El proveedor "${nombre.trim()}" no existe`, 400);
+  }
+  return proveedor.idProveedor;
+}
+
+// T-044/T-045: cada fila se valida y se crea con las mismas reglas que
+// crearArticulo (sku duplicado incluido) — una fila inválida se reporta y
+// no aborta el resto del archivo. No se paraleliza (no-await-in-loop): las
+// filas comparten validación de sku duplicado con la base de datos y entre
+// sí, igual que crearCategoriasEnLote.
+async function crearArticulosEnLote(filas) {
+  const creadas = [];
+  const errores = [];
+
+  for (const fila of filas) {
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      const idCategoria = await resolverCategoriaPorNombre(fila.categoria);
+      // eslint-disable-next-line no-await-in-loop
+      const idMarca = fila.marca ? await resolverMarcaPorNombre(fila.marca) : undefined;
+      // eslint-disable-next-line no-await-in-loop
+      const idProveedor = fila.proveedor ? await resolverProveedorPorNombre(fila.proveedor) : undefined;
+
+      // eslint-disable-next-line no-await-in-loop
+      const articulo = await crearArticulo({
+        sku: fila.sku,
+        nombre: fila.nombre,
+        precioVenta: fila.precioVenta,
+        precioCosto: fila.precioCosto,
+        inventarioMinimo: fila.inventarioMinimo,
+        ubicacion: fila.ubicacion,
+        idCategoria,
+        idMarca,
+        idProveedor,
+      });
+      creadas.push({ sku: articulo.sku, nombre: articulo.nombre });
+    } catch (error) {
+      errores.push({
+        fila: fila.numeroFila,
+        sku: fila.sku,
+        motivo: error instanceof ArticuloError ? error.message : "Error interno del servidor",
+      });
+    }
+  }
+
+  return { creadas, errores };
+}
+
 async function cambiarEstadoArticulo(sku, estado) {
   const articulo = await prisma.articulo.findUnique({ where: { sku } });
   if (!articulo) {
@@ -296,4 +372,5 @@ module.exports = {
   crearArticulo,
   editarArticulo,
   cambiarEstadoArticulo,
+  crearArticulosEnLote,
 };
