@@ -702,3 +702,19 @@ body {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* ---------- Paginación (catálogo de repuestos, HU-04) ---------- */
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+}
+
+.pagination-info {
+  font-size: var(--text-sm);
+  color: var(--color-neutral-500);
+}
+

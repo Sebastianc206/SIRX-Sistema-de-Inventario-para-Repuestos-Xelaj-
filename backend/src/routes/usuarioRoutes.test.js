@@ -55,8 +55,7 @@ describe("Rutas /api/usuarios — permisos", () => {
   });
 
   it.each(casos)("rechaza $metodo $ruta para el rol Operador con 403", async ({ metodo, ruta }) => {
-    const respuesta = await request(app)
-      [metodo](ruta)
+    const respuesta = await request(app)[metodo](ruta)
       .set("Authorization", `Bearer ${token("Operador")}`)
       .send({});
 
