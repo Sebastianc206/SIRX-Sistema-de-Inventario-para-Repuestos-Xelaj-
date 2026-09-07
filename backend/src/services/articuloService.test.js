@@ -94,6 +94,84 @@ describe("articuloService", () => {
       expect(resultado.articulos[0].precioCosto).toBe(90);
       expect(resultado.articulos[0].proveedor).toEqual({ idProveedor: 1, nombre: "Repuestos Guate S.A." });
     });
+
+    describe("HU-06: filtros combinables", () => {
+      it("T-051: filtra por idCategoria", async () => {
+        prisma.articulo.count.mockResolvedValueOnce(0);
+        prisma.articulo.findMany.mockResolvedValueOnce([]);
+
+        await listarArticulos({ idCategoria: 1, ocultarDatosSensibles: false });
+
+        expect(prisma.articulo.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({ where: { idCategoria: 1 } }),
+        );
+      });
+
+      it("T-051: filtra por idMarca", async () => {
+        prisma.articulo.count.mockResolvedValueOnce(0);
+        prisma.articulo.findMany.mockResolvedValueOnce([]);
+
+        await listarArticulos({ idMarca: 2, ocultarDatosSensibles: false });
+
+        expect(prisma.articulo.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({ where: { idMarca: 2 } }),
+        );
+      });
+
+      it("T-051: filtra por modelo compatible", async () => {
+        prisma.articulo.count.mockResolvedValueOnce(0);
+        prisma.articulo.findMany.mockResolvedValueOnce([]);
+
+        await listarArticulos({ idModelo: 5, ocultarDatosSensibles: false });
+
+        expect(prisma.articulo.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({ where: { modelosCompatibles: { some: { idModelo: 5 } } } }),
+        );
+      });
+
+      it("T-054: combina búsqueda + estado + los tres filtros a la vez (criterio 3)", async () => {
+        prisma.articulo.count.mockResolvedValueOnce(0);
+        prisma.articulo.findMany.mockResolvedValueOnce([]);
+
+        await listarArticulos({
+          busqueda: "freno",
+          estado: "activo",
+          idCategoria: 1,
+          idMarca: 2,
+          idModelo: 5,
+          ocultarDatosSensibles: false,
+        });
+
+        expect(prisma.articulo.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: {
+              OR: [
+                { sku: { contains: "freno", mode: "insensitive" } },
+                { nombre: { contains: "freno", mode: "insensitive" } },
+              ],
+              estado: true,
+              idCategoria: 1,
+              idMarca: 2,
+              modelosCompatibles: { some: { idModelo: 5 } },
+            },
+          }),
+        );
+      });
+
+      it("ignora un idCategoria/idMarca/idModelo no numérico (undefined desde el controlador)", async () => {
+        prisma.articulo.count.mockResolvedValueOnce(0);
+        prisma.articulo.findMany.mockResolvedValueOnce([]);
+
+        await listarArticulos({
+          idCategoria: undefined,
+          idMarca: undefined,
+          idModelo: undefined,
+          ocultarDatosSensibles: false,
+        });
+
+        expect(prisma.articulo.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: {} }));
+      });
+    });
   });
 
   describe("obtenerArticuloPorSku", () => {

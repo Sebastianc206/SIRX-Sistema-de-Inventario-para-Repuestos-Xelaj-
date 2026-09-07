@@ -35,8 +35,11 @@ Requisitos: Node.js 20+, npm, una base de datos PostgreSQL (local o Neon).
 ```bash
 # Backend
 cd backend
-cp .env.example .env
+cp .env.example .env          # completar DATABASE_URL, JWT_SECRET, ADMIN_PASSWORD, OPERADOR_PASSWORD
 npm install
+npx prisma migrate deploy     # crea las tablas
+npm run prisma:seed           # obligatorio: roles, usuarios (admin/operador) y geografía de referencia
+npm run prisma:seed:demo      # opcional: catálogo de ejemplo (categorías, marcas, repuestos, proveedores) para probar
 npm run dev
 
 # Frontend (en otra terminal)

@@ -45,11 +45,16 @@ export interface ListarRepuestosResultado {
   paginacion: Paginacion;
 }
 
+// HU-06: idCategoria/idMarca/idModelo son combinables entre sí y con
+// busqueda/estado (criterio 3) — el backend los intersecta con AND.
 export interface FiltrosRepuestos {
   pagina?: number;
   porPagina?: number;
   busqueda?: string;
   estado?: "activo" | "inactivo";
+  idCategoria?: number;
+  idMarca?: number;
+  idModelo?: number;
 }
 
 // HU-05: resumen que devuelve la carga masiva — filas exitosas y filas con

@@ -112,6 +112,36 @@ describe("Rutas /api/repuestos", () => {
         expect.objectContaining({ pagina: 2, porPagina: 10, busqueda: "freno", estado: "activo" }),
       );
     });
+
+    it("T-050/T-051: pasa idCategoria/idMarca/idModelo desde el query string", async () => {
+      mockArticuloService.listarArticulos.mockResolvedValue({
+        articulos: [],
+        paginacion: { pagina: 1, porPagina: 20, total: 0, totalPaginas: 1 },
+      });
+
+      await request(app)
+        .get("/api/repuestos?idCategoria=1&idMarca=2&idModelo=5")
+        .set("Authorization", `Bearer ${token("Operador")}`);
+
+      expect(mockArticuloService.listarArticulos).toHaveBeenCalledWith(
+        expect.objectContaining({ idCategoria: 1, idMarca: 2, idModelo: 5 }),
+      );
+    });
+
+    it("ignora filtros no numéricos en vez de romper la búsqueda", async () => {
+      mockArticuloService.listarArticulos.mockResolvedValue({
+        articulos: [],
+        paginacion: { pagina: 1, porPagina: 20, total: 0, totalPaginas: 1 },
+      });
+
+      await request(app)
+        .get("/api/repuestos?idCategoria=abc")
+        .set("Authorization", `Bearer ${token("Operador")}`);
+
+      expect(mockArticuloService.listarArticulos).toHaveBeenCalledWith(
+        expect.objectContaining({ idCategoria: undefined }),
+      );
+    });
   });
 
   describe("GET /api/repuestos/:sku", () => {
