@@ -131,7 +131,20 @@ async function validarReferencias({ idCategoria, idMarca, idProveedor, idsModelo
   }
 }
 
-async function listarArticulos({ pagina, porPagina, busqueda, estado, ocultarDatosSensibles }) {
+// HU-06: la búsqueda por texto (nombre/sku) y los filtros por categoría,
+// marca y modelo compatible se combinan con AND entre ellos (cada uno
+// reduce el resultado del anterior) — así "frenos" + categoría "Frenos"
+// + marca "Bosch" es una intersección, no una alternativa.
+async function listarArticulos({
+  pagina,
+  porPagina,
+  busqueda,
+  estado,
+  idCategoria,
+  idMarca,
+  idModelo,
+  ocultarDatosSensibles,
+}) {
   const paginaActual = Number.isInteger(pagina) && pagina > 0 ? pagina : PAGINA_POR_DEFECTO;
   const tamanoPagina =
     Number.isInteger(porPagina) && porPagina > 0
@@ -148,6 +161,9 @@ async function listarArticulos({ pagina, porPagina, busqueda, estado, ocultarDat
   }
   if (estado === "activo") where.estado = true;
   if (estado === "inactivo") where.estado = false;
+  if (Number.isInteger(idCategoria)) where.idCategoria = idCategoria;
+  if (Number.isInteger(idMarca)) where.idMarca = idMarca;
+  if (Number.isInteger(idModelo)) where.modelosCompatibles = { some: { idModelo } };
 
   const [total, articulos] = await Promise.all([
     prisma.articulo.count({ where }),

@@ -11,15 +11,18 @@ const {
 
 const router = express.Router();
 
-// Solo Administrador: hoy en día solo los usan el formulario de repuestos
-// (marcas/modelos) y el de proveedores (país/departamento/municipio),
-// ambos restringidos a este rol.
-router.use(authMiddleware, authorize("Administrador"));
+router.use(authMiddleware);
 
+// HU-06: marcas y modelos alimentan tanto el formulario de repuestos
+// (Administrador) como los filtros del catálogo (cualquier usuario
+// autenticado, ver criterio 2) — ninguno de los dos es un dato sensible.
 router.get("/marcas", listarMarcasController);
 router.get("/modelos", listarModelosController);
-router.get("/paises", listarPaisesController);
-router.get("/departamentos", listarDepartamentosController);
-router.get("/municipios", listarMunicipiosController);
+
+// País/departamento/municipio solo los usa el formulario de proveedores,
+// que sigue siendo exclusivo de Administrador (HU-26).
+router.get("/paises", authorize("Administrador"), listarPaisesController);
+router.get("/departamentos", authorize("Administrador"), listarDepartamentosController);
+router.get("/municipios", authorize("Administrador"), listarMunicipiosController);
 
 module.exports = router;

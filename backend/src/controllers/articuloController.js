@@ -34,6 +34,14 @@ function parsePaginacion(req) {
   };
 }
 
+// HU-06: idCategoria/idMarca/idModelo llegan como query string (texto) —
+// un valor ausente o no numérico se traduce a undefined, que
+// listarArticulos interpreta como "sin filtrar por ese campo" (no como 0).
+function parseFiltroId(valor) {
+  const numero = Number(valor);
+  return Number.isInteger(numero) ? numero : undefined;
+}
+
 async function listarController(req, res) {
   try {
     const { pagina, porPagina } = parsePaginacion(req);
@@ -42,6 +50,9 @@ async function listarController(req, res) {
       porPagina,
       busqueda: req.query.busqueda,
       estado: req.query.estado,
+      idCategoria: parseFiltroId(req.query.idCategoria),
+      idMarca: parseFiltroId(req.query.idMarca),
+      idModelo: parseFiltroId(req.query.idModelo),
       ocultarDatosSensibles: ocultarDatosSensibles(req),
     });
     return res.json(resultado);
