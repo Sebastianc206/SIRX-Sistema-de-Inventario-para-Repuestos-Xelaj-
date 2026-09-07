@@ -5,11 +5,15 @@ import { CargaMasivaRepuestosModal } from "@/components/CargaMasivaRepuestosModa
 import { PaginationControls } from "@/components/PaginationControls";
 import { RepuestoFormModal } from "@/components/RepuestoFormModal";
 import { useAuth } from "@/hooks/useAuth";
+import { listarCategorias } from "@/services/categoriaService";
+import { listarMarcas, listarModelos } from "@/services/catalogosAuxiliaresService";
 import {
   cambiarEstadoRepuesto,
   listarRepuestos,
   RepuestoApiError,
 } from "@/services/repuestoService";
+import type { Categoria } from "@/types/categoria";
+import type { Marca, Modelo } from "@/types/catalogosAuxiliares";
 import type { FiltrosRepuestos, Paginacion, Repuesto } from "@/types/repuesto";
 
 type ModalState = { modo: "crear" } | { modo: "editar"; repuesto: Repuesto } | null;
@@ -26,6 +30,12 @@ export default function RepuestosPage() {
   const [busqueda, setBusqueda] = useState("");
   const [busquedaAplicada, setBusquedaAplicada] = useState("");
   const [filtroEstado, setFiltroEstado] = useState<FiltrosRepuestos["estado"]>(undefined);
+  const [filtroCategoria, setFiltroCategoria] = useState<number | undefined>(undefined);
+  const [filtroMarca, setFiltroMarca] = useState<number | undefined>(undefined);
+  const [filtroModelo, setFiltroModelo] = useState<number | undefined>(undefined);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [marcas, setMarcas] = useState<Marca[]>([]);
+  const [modelos, setModelos] = useState<Modelo[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mensaje, setMensaje] = useState<string | null>(null);
@@ -35,7 +45,7 @@ export default function RepuestosPage() {
   const [skuEnProceso, setSkuEnProceso] = useState<string | null>(null);
 
   // Debounce simple: no dispara una petición por cada tecla, espera a que
-  // el usuario haga una pausa al escribir en el buscador.
+  // el usuario haga una pausa al escribir en el buscador (HU-06, criterio 1).
   useEffect(() => {
     const temporizador = setTimeout(() => {
       setBusquedaAplicada(busqueda);
@@ -43,6 +53,20 @@ export default function RepuestosPage() {
     }, 300);
     return () => clearTimeout(temporizador);
   }, [busqueda]);
+
+  // Catálogos para los filtros (HU-06, criterio 2): se cargan una sola vez,
+  // no dependen de la búsqueda ni de la página actual.
+  useEffect(() => {
+    listarCategorias()
+      .then(setCategorias)
+      .catch(() => setCategorias([]));
+    listarMarcas()
+      .then(setMarcas)
+      .catch(() => setMarcas([]));
+    listarModelos()
+      .then(setModelos)
+      .catch(() => setModelos([]));
+  }, []);
 
   const cargarRepuestos = useCallback(async () => {
     setCargando(true);
@@ -52,6 +76,9 @@ export default function RepuestosPage() {
         pagina,
         busqueda: busquedaAplicada || undefined,
         estado: filtroEstado,
+        idCategoria: filtroCategoria,
+        idMarca: filtroMarca,
+        idModelo: filtroModelo,
       });
       setRepuestos(resultado.articulos);
       setPaginacion(resultado.paginacion);
@@ -60,11 +87,19 @@ export default function RepuestosPage() {
     } finally {
       setCargando(false);
     }
-  }, [pagina, busquedaAplicada, filtroEstado]);
+  }, [pagina, busquedaAplicada, filtroEstado, filtroCategoria, filtroMarca, filtroModelo]);
 
   useEffect(() => {
     cargarRepuestos();
   }, [cargarRepuestos]);
+
+  // T-052/criterio 4: cualquier cambio de filtro vuelve a la página 1 y
+  // dispara cargarRepuestos vía el useEffect de arriba — sin recargar la
+  // página completa, solo re-fetch del listado.
+  function handleCambiarFiltro(actualizar: () => void) {
+    actualizar();
+    setPagina(1);
+  }
 
   function handleGuardado(mensajeExito: string) {
     setModal(null);
@@ -137,14 +172,72 @@ export default function RepuestosPage() {
             Estado
             <select
               value={filtroEstado ?? ""}
-              onChange={(event) => {
-                setFiltroEstado((event.target.value || undefined) as FiltrosRepuestos["estado"]);
-                setPagina(1);
-              }}
+              onChange={(event) =>
+                handleCambiarFiltro(() =>
+                  setFiltroEstado((event.target.value || undefined) as FiltrosRepuestos["estado"]),
+                )
+              }
             >
               <option value="">Todos</option>
               <option value="activo">Activo</option>
               <option value="inactivo">Inactivo</option>
+            </select>
+          </label>
+
+          <label>
+            Categoría
+            <select
+              value={filtroCategoria ?? ""}
+              onChange={(event) =>
+                handleCambiarFiltro(() =>
+                  setFiltroCategoria(event.target.value ? Number(event.target.value) : undefined),
+                )
+              }
+            >
+              <option value="">Todas</option>
+              {categorias.map((categoria) => (
+                <option key={categoria.idCategoria} value={categoria.idCategoria}>
+                  {categoria.descripcion}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            Marca
+            <select
+              value={filtroMarca ?? ""}
+              onChange={(event) =>
+                handleCambiarFiltro(() =>
+                  setFiltroMarca(event.target.value ? Number(event.target.value) : undefined),
+                )
+              }
+            >
+              <option value="">Todas</option>
+              {marcas.map((marca) => (
+                <option key={marca.idMarca} value={marca.idMarca}>
+                  {marca.nombre}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            Modelo compatible
+            <select
+              value={filtroModelo ?? ""}
+              onChange={(event) =>
+                handleCambiarFiltro(() =>
+                  setFiltroModelo(event.target.value ? Number(event.target.value) : undefined),
+                )
+              }
+            >
+              <option value="">Todos</option>
+              {modelos.map((modelo) => (
+                <option key={modelo.idModelo} value={modelo.idModelo}>
+                  {modelo.descripcion}
+                </option>
+              ))}
             </select>
           </label>
         </div>
@@ -164,7 +257,7 @@ export default function RepuestosPage() {
           <p className="admin-estado-vacio">Cargando repuestos...</p>
         ) : repuestos.length === 0 ? (
           <p className="admin-estado-vacio">
-            {busquedaAplicada || filtroEstado
+            {busquedaAplicada || filtroEstado || filtroCategoria || filtroMarca || filtroModelo
               ? "No hay repuestos que coincidan con los filtros."
               : "Todavía no hay repuestos registrados en el catálogo."}
           </p>

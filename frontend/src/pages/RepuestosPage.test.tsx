@@ -6,10 +6,20 @@ import RepuestosPage from "@/pages/RepuestosPage";
 import { RepuestoApiError } from "@/services/repuestoService";
 import type { Repuesto } from "@/types/repuesto";
 
-const { mockListarRepuestos, mockCambiarEstadoRepuesto, mockUseAuth } = vi.hoisted(() => ({
+const {
+  mockListarRepuestos,
+  mockCambiarEstadoRepuesto,
+  mockUseAuth,
+  mockListarCategorias,
+  mockListarMarcas,
+  mockListarModelos,
+} = vi.hoisted(() => ({
   mockListarRepuestos: vi.fn(),
   mockCambiarEstadoRepuesto: vi.fn(),
   mockUseAuth: vi.fn(),
+  mockListarCategorias: vi.fn().mockResolvedValue([]),
+  mockListarMarcas: vi.fn().mockResolvedValue([]),
+  mockListarModelos: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock("@/services/repuestoService", async () => {
@@ -24,8 +34,8 @@ vi.mock("@/services/repuestoService", async () => {
 });
 
 vi.mock("@/services/catalogosAuxiliaresService", () => ({
-  listarMarcas: vi.fn().mockResolvedValue([]),
-  listarModelos: vi.fn().mockResolvedValue([]),
+  listarMarcas: mockListarMarcas,
+  listarModelos: mockListarModelos,
 }));
 
 vi.mock("@/services/proveedorService", () => ({
@@ -33,7 +43,7 @@ vi.mock("@/services/proveedorService", () => ({
 }));
 
 vi.mock("@/services/categoriaService", () => ({
-  listarCategorias: vi.fn().mockResolvedValue([]),
+  listarCategorias: mockListarCategorias,
 }));
 
 vi.mock("@/hooks/useAuth", () => ({ useAuth: mockUseAuth }));
@@ -196,5 +206,78 @@ describe("RepuestosPage", () => {
     renderPage();
 
     expect(await screen.findByText(/todavía no hay repuestos registrados/i)).toBeInTheDocument();
+  });
+
+  describe("HU-06: filtros combinables", () => {
+    it("T-052: filtra por nombre o código con debounce (no dispara una petición por cada tecla)", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      comoAdministrador();
+      mockListarRepuestos.mockResolvedValue({
+        articulos: [],
+        paginacion: { pagina: 1, porPagina: 20, total: 0, totalPaginas: 1 },
+      });
+
+      renderPage();
+      await vi.waitFor(() => expect(mockListarRepuestos).toHaveBeenCalledTimes(1));
+
+      const buscador = screen.getByPlaceholderText(/buscar por sku o nombre/i);
+      await userEvent.type(buscador, "freno", { delay: null });
+
+      // Todavía dentro de la ventana de debounce: ninguna llamada nueva.
+      expect(mockListarRepuestos).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(300);
+
+      expect(mockListarRepuestos).toHaveBeenLastCalledWith(
+        expect.objectContaining({ busqueda: "freno" }),
+      );
+      vi.useRealTimers();
+    });
+
+    it("T-051/criterio 2: ofrece filtros por categoría, marca y modelo compatible", async () => {
+      comoAdministrador();
+      mockListarCategorias.mockResolvedValueOnce([{ idCategoria: 1, descripcion: "Frenos" }]);
+      mockListarMarcas.mockResolvedValueOnce([{ idMarca: 2, nombre: "Bosch" }]);
+      mockListarModelos.mockResolvedValueOnce([{ idModelo: 5, descripcion: "Toyota Hilux 2015-2020" }]);
+      mockListarRepuestos.mockResolvedValue({
+        articulos: [],
+        paginacion: { pagina: 1, porPagina: 20, total: 0, totalPaginas: 1 },
+      });
+
+      renderPage();
+
+      expect(await screen.findByRole("option", { name: "Frenos" })).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: "Bosch" })).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: "Toyota Hilux 2015-2020" })).toBeInTheDocument();
+    });
+
+    it("T-054/criterio 3: combina categoría + marca + modelo con la búsqueda y el estado, sin recargar la página", async () => {
+      comoAdministrador();
+      mockListarCategorias.mockResolvedValueOnce([{ idCategoria: 1, descripcion: "Frenos" }]);
+      mockListarMarcas.mockResolvedValueOnce([{ idMarca: 2, nombre: "Bosch" }]);
+      mockListarModelos.mockResolvedValueOnce([{ idModelo: 5, descripcion: "Toyota Hilux 2015-2020" }]);
+      mockListarRepuestos.mockResolvedValue({
+        articulos: [],
+        paginacion: { pagina: 1, porPagina: 20, total: 0, totalPaginas: 1 },
+      });
+
+      renderPage();
+      await screen.findByRole("option", { name: "Frenos" });
+
+      await userEvent.selectOptions(screen.getByLabelText(/^categoría$/i), "1");
+      await userEvent.selectOptions(screen.getByLabelText(/^marca$/i), "2");
+      await userEvent.selectOptions(screen.getByLabelText(/modelo compatible/i), "5");
+      await userEvent.selectOptions(screen.getByLabelText(/^estado$/i), "activo");
+
+      expect(mockListarRepuestos).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          idCategoria: 1,
+          idMarca: 2,
+          idModelo: 5,
+          estado: "activo",
+          pagina: 1,
+        }),
+      );
+    });
   });
 });
