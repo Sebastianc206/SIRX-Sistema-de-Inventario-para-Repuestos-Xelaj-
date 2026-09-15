@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { AppHeader } from "@/components/AppHeader";
+import { Sidebar } from "@/components/Sidebar";
 import { ProveedorFormModal } from "@/components/ProveedorFormModal";
-import { listarProveedores, ProveedorApiError } from "@/services/proveedorService";
+import {
+  cambiarEstadoProveedor,
+  listarProveedores,
+  ProveedorApiError,
+} from "@/services/proveedorService";
 import type { Proveedor } from "@/types/proveedor";
 
 type ModalState = { modo: "crear" } | { modo: "editar"; proveedor: Proveedor } | null;
@@ -14,6 +18,8 @@ export default function ProveedoresPage() {
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [modal, setModal] = useState<ModalState>(null);
+  const [idAConfirmar, setIdAConfirmar] = useState<number | null>(null);
+  const [idEnProceso, setIdEnProceso] = useState<number | null>(null);
 
   const cargarProveedores = useCallback(async () => {
     setCargando(true);
@@ -44,9 +50,32 @@ export default function ProveedoresPage() {
     cargarProveedores();
   }
 
+  // Baja lógica (T-039/HU-26, mismo patrón de confirmación inline que
+  // RepuestosPage): nunca se borra físicamente, solo se marca vigente.
+  async function handleCambiarEstado(proveedor: Proveedor) {
+    setIdEnProceso(proveedor.idProveedor);
+    setError(null);
+    try {
+      const actualizado = await cambiarEstadoProveedor(proveedor.idProveedor, !proveedor.vigente);
+      setProveedores((actual) =>
+        actual.map((p) => (p.idProveedor === actualizado.idProveedor ? actualizado : p)),
+      );
+      setMensaje(
+        actualizado.vigente
+          ? `Se reactivó el proveedor "${actualizado.nombre}".`
+          : `Se dio de baja el proveedor "${actualizado.nombre}".`,
+      );
+    } catch (err) {
+      setError(err instanceof ProveedorApiError ? err.message : "No se pudo cambiar el estado");
+    } finally {
+      setIdEnProceso(null);
+      setIdAConfirmar(null);
+    }
+  }
+
   return (
-    <div className="dashboard-page">
-      <AppHeader />
+    <div className="app-shell">
+      <Sidebar />
 
       <main className="admin-page">
         <Link to="/" className="admin-volver">
@@ -97,6 +126,7 @@ export default function ProveedoresPage() {
                   <th>Nombre</th>
                   <th>Dirección</th>
                   <th>Contacto</th>
+                  <th>Estado</th>
                   <th aria-label="Acciones" />
                 </tr>
               </thead>
@@ -106,14 +136,54 @@ export default function ProveedoresPage() {
                     <td>{fila.nombre}</td>
                     <td>{fila.direccion ?? "—"}</td>
                     <td>{fila.contacto ?? "—"}</td>
-                    <td className="admin-acciones">
-                      <button
-                        type="button"
-                        className="btn-secondary"
-                        onClick={() => setModal({ modo: "editar", proveedor: fila })}
+                    <td>
+                      <span
+                        className={fila.vigente ? "estado-badge estado-badge--activo" : "estado-badge estado-badge--inactivo"}
                       >
-                        Editar
-                      </button>
+                        {fila.vigente ? "Activo" : "Inactivo"}
+                      </span>
+                    </td>
+                    <td className="admin-acciones">
+                      {idAConfirmar === fila.idProveedor ? (
+                        <>
+                          <span className="modal-helper-text">
+                            {fila.vigente ? "¿Dar de baja?" : "¿Reactivar?"}
+                          </span>
+                          <button
+                            type="button"
+                            className="btn-danger"
+                            onClick={() => handleCambiarEstado(fila)}
+                            disabled={idEnProceso === fila.idProveedor}
+                          >
+                            {idEnProceso === fila.idProveedor ? "..." : "Confirmar"}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            onClick={() => setIdAConfirmar(null)}
+                            disabled={idEnProceso === fila.idProveedor}
+                          >
+                            Cancelar
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            onClick={() => setModal({ modo: "editar", proveedor: fila })}
+                          >
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            className={fila.vigente ? "btn-danger" : "btn-secondary"}
+                            onClick={() => setIdAConfirmar(fila.idProveedor)}
+                          >
+                            {fila.vigente ? "Dar de baja" : "Activar"}
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}

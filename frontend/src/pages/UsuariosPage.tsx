@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { AppHeader } from "@/components/AppHeader";
+import { Sidebar } from "@/components/Sidebar";
 import { UsuarioFormModal } from "@/components/UsuarioFormModal";
 import {
   cambiarEstadoUsuario,
@@ -67,8 +67,8 @@ export default function UsuariosPage() {
   }
 
   return (
-    <div className="dashboard-page">
-      <AppHeader />
+    <div className="app-shell">
+      <Sidebar />
 
       <main className="admin-page">
         <Link to="/" className="admin-volver">

@@ -75,9 +75,29 @@ async function validarReferencias({ idPais, idDepartamento, idMunicipio }) {
   }
 }
 
-async function listarProveedores() {
-  const proveedores = await prisma.proveedor.findMany({ orderBy: { nombre: "asc" } });
+// vigente=true filtra los dados de baja — usado por los selectores
+// (ProveedorSelect/ProveedorRequeridoSelect) para que un proveedor inactivo
+// no se pueda asignar a un repuesto ni a una compra nueva. Sin el filtro
+// (ProveedoresPage, la pantalla de administración), se listan todos para
+// poder reactivarlos.
+async function listarProveedores({ vigente } = {}) {
+  const where = {};
+  if (vigente === true) where.vigente = true;
+
+  const proveedores = await prisma.proveedor.findMany({ where, orderBy: { nombre: "asc" } });
   return proveedores.map(formatearProveedor);
+}
+
+// Baja lógica (T-039/HU-26, mismo patrón que cambiarEstadoArticulo): nunca
+// se borra físicamente, solo se marca vigente=false/true.
+async function cambiarEstadoProveedor(idProveedor, vigente) {
+  const proveedor = await prisma.proveedor.findUnique({ where: { idProveedor } });
+  if (!proveedor) {
+    throw new ProveedorError("Proveedor no encontrado", 404);
+  }
+
+  const actualizado = await prisma.proveedor.update({ where: { idProveedor }, data: { vigente } });
+  return formatearProveedor(actualizado);
 }
 
 async function crearProveedor(datos) {
@@ -132,4 +152,10 @@ async function editarProveedor(idProveedor, datos) {
   return formatearProveedor(actualizado);
 }
 
-module.exports = { ProveedorError, listarProveedores, crearProveedor, editarProveedor };
+module.exports = {
+  ProveedorError,
+  listarProveedores,
+  crearProveedor,
+  editarProveedor,
+  cambiarEstadoProveedor,
+};

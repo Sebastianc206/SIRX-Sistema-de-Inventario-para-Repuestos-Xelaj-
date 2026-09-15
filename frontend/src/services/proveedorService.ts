@@ -28,8 +28,15 @@ async function manejarRespuesta<T>(response: Response): Promise<T> {
   return data as T;
 }
 
-export async function listarProveedores(): Promise<Proveedor[]> {
-  const response = await fetch(`${API_URL}/api/proveedores`, { headers: authHeaders() });
+// vigente=true filtra los proveedores dados de baja — usarlo en cualquier
+// selector (ProveedorSelect/ProveedorRequeridoSelect) para que uno inactivo
+// no se pueda asignar a un repuesto ni a una compra nueva. Sin el filtro
+// (ProveedoresPage), se listan todos para poder reactivarlos.
+export async function listarProveedores(opciones: { vigente?: boolean } = {}): Promise<Proveedor[]> {
+  const params = new URLSearchParams();
+  if (opciones.vigente) params.set("vigente", "true");
+
+  const response = await fetch(`${API_URL}/api/proveedores?${params.toString()}`, { headers: authHeaders() });
   const data = await manejarRespuesta<{ proveedores: Proveedor[] }>(response);
   return data.proveedores;
 }
@@ -49,6 +56,16 @@ export async function editarProveedor(idProveedor: number, input: EditarProveedo
     method: "PUT",
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(input),
+  });
+  const data = await manejarRespuesta<{ proveedor: Proveedor }>(response);
+  return data.proveedor;
+}
+
+export async function cambiarEstadoProveedor(idProveedor: number, vigente: boolean): Promise<Proveedor> {
+  const response = await fetch(`${API_URL}/api/proveedores/${idProveedor}/estado`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ vigente }),
   });
   const data = await manejarRespuesta<{ proveedor: Proveedor }>(response);
   return data.proveedor;

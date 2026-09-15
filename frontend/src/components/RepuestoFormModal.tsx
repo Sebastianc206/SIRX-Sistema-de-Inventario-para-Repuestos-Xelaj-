@@ -6,6 +6,7 @@ import { ProveedorSelect } from "@/components/ProveedorSelect";
 import { ModelosCompatiblesField } from "@/components/ModelosCompatiblesField";
 import { crearRepuesto, editarRepuesto, RepuestoApiError } from "@/services/repuestoService";
 import type { Repuesto } from "@/types/repuesto";
+import { estadoStock } from "@/utils/estadoStock";
 
 interface RepuestoFormModalProps {
   // null = crear un repuesto nuevo; un Repuesto = editar ese repuesto.
@@ -147,6 +148,25 @@ export function RepuestoFormModal({ repuesto, onClose, onGuardado }: RepuestoFor
               required
             />
           </div>
+
+          {esEdicion && (
+            <div className="repuesto-stock-block">
+              <div className="repuesto-stock-item">
+                <span className="repuesto-stock-label">Stock actual</span>
+                <span className="repuesto-stock-valor">{repuesto.cantidadInventario}</span>
+              </div>
+              <div className="repuesto-stock-item">
+                <span className="repuesto-stock-label">Stock mínimo</span>
+                <span className="repuesto-stock-valor">{repuesto.inventarioMinimo}</span>
+              </div>
+              <div className="repuesto-stock-item">
+                <span className="repuesto-stock-label">Estado</span>
+                <span className={`stock-badge ${estadoStock(repuesto.cantidadInventario, repuesto.inventarioMinimo).clase}`}>
+                  {estadoStock(repuesto.cantidadInventario, repuesto.inventarioMinimo).texto}
+                </span>
+              </div>
+            </div>
+          )}
 
           <CategoriaSelect value={idCategoria} onChange={setIdCategoria} disabled={enviando} />
           <MarcaSelect value={idMarca} onChange={setIdMarca} disabled={enviando} />

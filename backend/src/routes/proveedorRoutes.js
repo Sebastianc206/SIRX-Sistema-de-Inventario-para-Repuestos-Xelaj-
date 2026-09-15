@@ -1,7 +1,12 @@
 const express = require("express");
 const authMiddleware = require("../middlewares/authMiddleware");
 const authorize = require("../middlewares/roleMiddleware");
-const { listarController, crearController, editarController } = require("../controllers/proveedorController");
+const {
+  listarController,
+  crearController,
+  editarController,
+  cambiarEstadoController,
+} = require("../controllers/proveedorController");
 
 const router = express.Router();
 
@@ -14,5 +19,6 @@ router.use(authMiddleware, authorize("Administrador"));
 router.get("/", listarController);
 router.post("/", crearController);
 router.put("/:id", editarController);
+router.patch("/:id/estado", cambiarEstadoController);
 
 module.exports = router;

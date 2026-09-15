@@ -2,6 +2,7 @@ const mockProveedorService = {
   listarProveedores: jest.fn(),
   crearProveedor: jest.fn(),
   editarProveedor: jest.fn(),
+  cambiarEstadoProveedor: jest.fn(),
 };
 
 jest.mock("../services/proveedorService", () => ({
@@ -132,6 +133,45 @@ describe("Rutas /api/proveedores", () => {
 
       expect(respuesta.status).toBe(200);
       expect(mockProveedorService.editarProveedor).toHaveBeenCalledWith(1, { nombre: "Nuevo nombre" });
+    });
+  });
+
+  describe("PATCH /api/proveedores/:id/estado", () => {
+    it("T-039: rechaza a Operador con 403", async () => {
+      const respuesta = await request(app)
+        .patch("/api/proveedores/1/estado")
+        .set("Authorization", `Bearer ${token("Operador")}`)
+        .send({ vigente: false });
+
+      expect(respuesta.status).toBe(403);
+      expect(mockProveedorService.cambiarEstadoProveedor).not.toHaveBeenCalled();
+    });
+
+    it("rechaza si vigente no es booleano", async () => {
+      const respuesta = await request(app)
+        .patch("/api/proveedores/1/estado")
+        .set("Authorization", `Bearer ${token("Administrador")}`)
+        .send({ vigente: "no" });
+
+      expect(respuesta.status).toBe(400);
+      expect(mockProveedorService.cambiarEstadoProveedor).not.toHaveBeenCalled();
+    });
+
+    it("da de baja el proveedor cuando Administrador envía vigente=false", async () => {
+      mockProveedorService.cambiarEstadoProveedor.mockResolvedValueOnce({
+        idProveedor: 1,
+        nombre: "Repuestos Guate S.A.",
+        vigente: false,
+      });
+
+      const respuesta = await request(app)
+        .patch("/api/proveedores/1/estado")
+        .set("Authorization", `Bearer ${token("Administrador")}`)
+        .send({ vigente: false });
+
+      expect(respuesta.status).toBe(200);
+      expect(mockProveedorService.cambiarEstadoProveedor).toHaveBeenCalledWith(1, false);
+      expect(respuesta.body.proveedor.vigente).toBe(false);
     });
   });
 });

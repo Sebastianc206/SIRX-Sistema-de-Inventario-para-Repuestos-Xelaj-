@@ -1,18 +1,25 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import ProveedoresPage from "@/pages/ProveedoresPage";
 import { ProveedorApiError } from "@/services/proveedorService";
 import type { Proveedor } from "@/types/proveedor";
 
-const { mockListarProveedores } = vi.hoisted(() => ({ mockListarProveedores: vi.fn() }));
+const { mockListarProveedores, mockCambiarEstadoProveedor } = vi.hoisted(() => ({
+  mockListarProveedores: vi.fn(),
+  mockCambiarEstadoProveedor: vi.fn(),
+}));
 
 vi.mock("@/services/proveedorService", async () => {
   const actual = await vi.importActual<typeof import("@/services/proveedorService")>(
     "@/services/proveedorService",
   );
-  return { ...actual, listarProveedores: mockListarProveedores };
+  return {
+    ...actual,
+    listarProveedores: mockListarProveedores,
+    cambiarEstadoProveedor: mockCambiarEstadoProveedor,
+  };
 });
 
 vi.mock("@/services/catalogosAuxiliaresService", () => ({
@@ -105,5 +112,35 @@ describe("ProveedoresPage", () => {
     await userEvent.click(screen.getByRole("button", { name: /nuevo proveedor/i }));
 
     expect(screen.getByRole("dialog", { name: /nuevo proveedor/i })).toBeInTheDocument();
+  });
+
+  it("da de baja un proveedor tras confirmar", async () => {
+    mockListarProveedores.mockResolvedValueOnce(proveedores);
+    mockCambiarEstadoProveedor.mockResolvedValueOnce({ ...proveedores[0], vigente: false });
+    renderPage();
+    const fila = (await screen.findByText("Repuestos Guate S.A.")).closest("tr") as HTMLElement;
+
+    await userEvent.click(within(fila).getByRole("button", { name: /dar de baja/i }));
+    expect(within(fila).getByText(/¿dar de baja\?/i)).toBeInTheDocument();
+
+    await userEvent.click(within(fila).getByRole("button", { name: /confirmar/i }));
+
+    expect(mockCambiarEstadoProveedor).toHaveBeenCalledWith(1, false);
+    expect(await screen.findByText(/se dio de baja el proveedor/i)).toBeInTheDocument();
+  });
+
+  it("muestra el badge de estado y permite reactivar un proveedor inactivo", async () => {
+    mockListarProveedores.mockResolvedValueOnce([{ ...proveedores[0], vigente: false }]);
+    mockCambiarEstadoProveedor.mockResolvedValueOnce({ ...proveedores[0], vigente: true });
+    renderPage();
+    const fila = (await screen.findByText("Repuestos Guate S.A.")).closest("tr") as HTMLElement;
+
+    expect(within(fila).getByText("Inactivo")).toBeInTheDocument();
+
+    await userEvent.click(within(fila).getByRole("button", { name: /activar/i }));
+    await userEvent.click(within(fila).getByRole("button", { name: /confirmar/i }));
+
+    expect(mockCambiarEstadoProveedor).toHaveBeenCalledWith(1, true);
+    expect(await screen.findByText(/se reactivó el proveedor/i)).toBeInTheDocument();
   });
 });

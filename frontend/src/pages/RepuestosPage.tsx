@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { AppHeader } from "@/components/AppHeader";
+import { Sidebar } from "@/components/Sidebar";
 import { CargaMasivaRepuestosModal } from "@/components/CargaMasivaRepuestosModal";
 import { PaginationControls } from "@/components/PaginationControls";
 import { RepuestoFormModal } from "@/components/RepuestoFormModal";
@@ -15,10 +15,34 @@ import {
 import type { Categoria } from "@/types/categoria";
 import type { Marca, Modelo } from "@/types/catalogosAuxiliares";
 import type { FiltrosRepuestos, Paginacion, Repuesto } from "@/types/repuesto";
+import { estadoStock } from "@/utils/estadoStock";
 
 type ModalState = { modo: "crear" } | { modo: "editar"; repuesto: Repuesto } | null;
 
 const PAGINACION_INICIAL: Paginacion = { pagina: 1, porPagina: 20, total: 0, totalPaginas: 1 };
+
+function IconoRepuesto() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M7 4h10l2 4v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8l2-4Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path d="M5 8h14M9 12h6M9 15.5h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconoBuscar() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.8" />
+      <path d="m20 20-3.8-3.8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 export default function RepuestosPage() {
   const { usuario } = useAuth();
@@ -133,10 +157,10 @@ export default function RepuestosPage() {
   }
 
   return (
-    <div className="dashboard-page">
-      <AppHeader />
+    <div className="app-shell">
+      <Sidebar />
 
-      <main className="admin-page">
+      <main className="admin-page admin-page--ancho">
         <Link to="/" className="admin-volver">
           ← Volver al panel
         </Link>
@@ -158,16 +182,6 @@ export default function RepuestosPage() {
         </div>
 
         <div className="admin-filtros">
-          <label>
-            Buscar
-            <input
-              type="search"
-              value={busqueda}
-              onChange={(event) => setBusqueda(event.target.value)}
-              placeholder="Buscar por SKU o nombre..."
-            />
-          </label>
-
           <label>
             Estado
             <select
@@ -253,21 +267,34 @@ export default function RepuestosPage() {
           </p>
         )}
 
-        {cargando ? (
-          <p className="admin-estado-vacio">Cargando repuestos...</p>
-        ) : repuestos.length === 0 ? (
-          <p className="admin-estado-vacio">
-            {busquedaAplicada || filtroEstado || filtroCategoria || filtroMarca || filtroModelo
-              ? "No hay repuestos que coincidan con los filtros."
-              : "Todavía no hay repuestos registrados en el catálogo."}
-          </p>
-        ) : (
-          <div className="admin-tabla-wrap">
+        <div className="admin-tabla-wrap">
+          <div className="tabla-header">
+            <h3>{paginacion.total} repuesto{paginacion.total === 1 ? "" : "s"}</h3>
+            <label className="tabla-buscador">
+              <IconoBuscar />
+              <input
+                type="search"
+                value={busqueda}
+                onChange={(event) => setBusqueda(event.target.value)}
+                placeholder="Buscar por SKU o nombre..."
+                aria-label="Buscar en el catálogo"
+              />
+            </label>
+          </div>
+
+          {cargando ? (
+            <p className="admin-estado-vacio">Cargando repuestos...</p>
+          ) : repuestos.length === 0 ? (
+            <p className="admin-estado-vacio">
+              {busquedaAplicada || filtroEstado || filtroCategoria || filtroMarca || filtroModelo
+                ? "No hay repuestos que coincidan con los filtros."
+                : "Todavía no hay repuestos registrados en el catálogo."}
+            </p>
+          ) : (
             <table className="admin-tabla">
               <thead>
                 <tr>
-                  <th>SKU</th>
-                  <th>Nombre</th>
+                  <th>Repuesto</th>
                   <th>Categoría</th>
                   <th>Marca</th>
                   <th>Precio venta</th>
@@ -280,11 +307,18 @@ export default function RepuestosPage() {
               </thead>
               <tbody>
                 {repuestos.map((fila) => {
-                  const stockBajo = fila.cantidadInventario < fila.inventarioMinimo;
+                  const stock = estadoStock(fila.cantidadInventario, fila.inventarioMinimo);
                   return (
                     <tr key={fila.sku}>
-                      <td>{fila.sku}</td>
-                      <td>{fila.nombre}</td>
+                      <td className="admin-tabla-celda-repuesto">
+                        <span className="repuesto-icono">
+                          <IconoRepuesto />
+                        </span>
+                        <span>
+                          <div>{fila.nombre}</div>
+                          <div className="modal-helper-text">{fila.sku}</div>
+                        </span>
+                      </td>
                       <td>{fila.categoria?.descripcion ?? "—"}</td>
                       <td>{fila.marca?.nombre ?? "—"}</td>
                       <td>Q{Number(fila.precioVenta).toFixed(2)}</td>
@@ -293,9 +327,8 @@ export default function RepuestosPage() {
                       )}
                       {esAdministrador && <td>{fila.proveedor?.nombre ?? "—"}</td>}
                       <td>
-                        <span className={stockBajo ? "estado-badge estado-badge--inactivo" : ""}>
-                          {fila.cantidadInventario}
-                          {stockBajo && " ⚠"}
+                        <span className={`stock-badge ${stock.clase}`}>
+                          {fila.cantidadInventario} · {stock.texto}
                         </span>
                       </td>
                       <td>
@@ -358,8 +391,8 @@ export default function RepuestosPage() {
                 })}
               </tbody>
             </table>
-          </div>
-        )}
+          )}
+        </div>
 
         <PaginationControls paginacion={paginacion} onCambiarPagina={setPagina} />
       </main>

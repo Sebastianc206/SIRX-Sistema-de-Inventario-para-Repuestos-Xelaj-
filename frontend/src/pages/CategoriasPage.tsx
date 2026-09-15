@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { AppHeader } from "@/components/AppHeader";
+import { Sidebar } from "@/components/Sidebar";
 import { CategoriaFormModal } from "@/components/CategoriaFormModal";
 import { eliminarCategoria, listarCategorias, CategoriaApiError } from "@/services/categoriaService";
 import type { Categoria } from "@/types/categoria";
@@ -62,8 +62,8 @@ export default function CategoriasPage() {
   }
 
   return (
-    <div className="dashboard-page">
-      <AppHeader />
+    <div className="app-shell">
+      <Sidebar />
 
       <main className="admin-page">
         <Link to="/" className="admin-volver">

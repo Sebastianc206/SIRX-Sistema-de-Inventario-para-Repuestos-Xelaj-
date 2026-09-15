@@ -16,6 +16,7 @@ const {
   listarProveedores,
   crearProveedor,
   editarProveedor,
+  cambiarEstadoProveedor,
 } = require("./proveedorService");
 
 const PROVEEDOR_BASE = {
@@ -35,12 +36,12 @@ describe("proveedorService", () => {
   });
 
   describe("listarProveedores", () => {
-    it("devuelve los proveedores ordenados alfabéticamente y formateados", async () => {
+    it("devuelve todos los proveedores (activos e inactivos) sin filtro", async () => {
       prisma.proveedor.findMany.mockResolvedValueOnce([PROVEEDOR_BASE]);
 
       const resultado = await listarProveedores();
 
-      expect(prisma.proveedor.findMany).toHaveBeenCalledWith({ orderBy: { nombre: "asc" } });
+      expect(prisma.proveedor.findMany).toHaveBeenCalledWith({ where: {}, orderBy: { nombre: "asc" } });
       expect(resultado).toEqual([
         {
           idProveedor: 1,
@@ -53,6 +54,17 @@ describe("proveedorService", () => {
           idMunicipio: 1,
         },
       ]);
+    });
+
+    it("filtra solo vigentes cuando vigente=true (selectores de repuesto/compra)", async () => {
+      prisma.proveedor.findMany.mockResolvedValueOnce([PROVEEDOR_BASE]);
+
+      await listarProveedores({ vigente: true });
+
+      expect(prisma.proveedor.findMany).toHaveBeenCalledWith({
+        where: { vigente: true },
+        orderBy: { nombre: "asc" },
+      });
     });
   });
 
@@ -146,6 +158,37 @@ describe("proveedorService", () => {
         where: { idProveedor: 1 },
         data: { nombre: "Nuevo nombre" },
       });
+    });
+  });
+
+  describe("cambiarEstadoProveedor", () => {
+    it("lanza 404 si el proveedor no existe", async () => {
+      prisma.proveedor.findUnique.mockResolvedValueOnce(null);
+
+      await expect(cambiarEstadoProveedor(99, false)).rejects.toMatchObject({ statusCode: 404 });
+      expect(prisma.proveedor.update).not.toHaveBeenCalled();
+    });
+
+    it("da de baja (vigente=false) sin borrar el registro", async () => {
+      prisma.proveedor.findUnique.mockResolvedValueOnce(PROVEEDOR_BASE);
+      prisma.proveedor.update.mockResolvedValueOnce({ ...PROVEEDOR_BASE, vigente: false });
+
+      const resultado = await cambiarEstadoProveedor(1, false);
+
+      expect(prisma.proveedor.update).toHaveBeenCalledWith({
+        where: { idProveedor: 1 },
+        data: { vigente: false },
+      });
+      expect(resultado.vigente).toBe(false);
+    });
+
+    it("reactiva (vigente=true)", async () => {
+      prisma.proveedor.findUnique.mockResolvedValueOnce({ ...PROVEEDOR_BASE, vigente: false });
+      prisma.proveedor.update.mockResolvedValueOnce(PROVEEDOR_BASE);
+
+      const resultado = await cambiarEstadoProveedor(1, true);
+
+      expect(resultado.vigente).toBe(true);
     });
   });
 

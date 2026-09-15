@@ -58,14 +58,17 @@ const PROVEEDORES = [
   },
 ];
 
-// Tabla de referencia para el futuro módulo de ventas (todavía no
-// implementado) — se siembra ya para que esa historia no dependa de crear
-// esto a mano; no se usa en ningún endpoint hoy.
+// Catálogo usado por HU-09/13/14 (ventaService/salidaAjusteService) para
+// distinguir el motivo de una salida sin ambigüedad: "Venta" es la única
+// que cuenta como ingreso (HU-14); el resto son ajustes/mermas (HU-09) y
+// quedan fuera del historial de ventas. "Ajuste" se agregó junto con esas
+// historias — las demás ya estaban sembradas desde antes.
 const TIPOS_SALIDA = [
   { idTipoSalida: 1, descripcion: "Venta" },
   { idTipoSalida: 2, descripcion: "Merma" },
   { idTipoSalida: 3, descripcion: "Uso interno" },
   { idTipoSalida: 4, descripcion: "Garantía" },
+  { idTipoSalida: 5, descripcion: "Ajuste" },
 ];
 
 // Mezcla deliberada de niveles de stock: varios quedan por debajo de su
