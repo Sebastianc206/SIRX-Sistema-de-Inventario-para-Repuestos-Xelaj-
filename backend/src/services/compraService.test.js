@@ -252,6 +252,53 @@ describe("compraService", () => {
       });
       expect(resultado.anulada).toBe(true);
     });
+
+    it("HU-08: el stock queda EXACTAMENTE igual al de antes de la compra tras anularla", async () => {
+      // Simula inventario real (no solo verifica la forma del argumento de
+      // update): el mock de tx.inventario.update aplica el decrement sobre
+      // un objeto en memoria, así se puede comparar el valor final exacto.
+      const stockAntesDeLaCompra = { "FRE-001": 5, "FIL-002": 3 };
+      const stockTrasLaCompra = { "FRE-001": 15, "FIL-002": 5 }; // 5+10, 3+2
+
+      prisma.compraMaestro.findUnique.mockResolvedValueOnce({
+        idCompra: 1,
+        anulada: false,
+        detalles: [
+          { sku: "FRE-001", cantidad: 10 },
+          { sku: "FIL-002", cantidad: 2 },
+        ],
+      });
+      prisma.inventario.findMany.mockResolvedValueOnce([
+        { sku: "FRE-001", cantidad: stockTrasLaCompra["FRE-001"] },
+        { sku: "FIL-002", cantidad: stockTrasLaCompra["FIL-002"] },
+      ]);
+
+      const inventario = { ...stockTrasLaCompra };
+      prisma.$transaction.mockImplementationOnce(async (callback) =>
+        callback({
+          inventario: {
+            update: jest.fn(({ where, data }) => {
+              inventario[where.sku] += data.cantidad.decrement * -1;
+              return Promise.resolve();
+            }),
+          },
+          compraMaestro: { update: jest.fn() },
+        }),
+      );
+      prisma.compraMaestro.findUnique.mockResolvedValueOnce({
+        idCompra: 1,
+        anulada: true,
+        fechaCompra: new Date(),
+        montoTotalCompra: 100,
+        proveedor: null,
+        colaborador: null,
+        detalles: [],
+      });
+
+      await anularCompra(1);
+
+      expect(inventario).toEqual(stockAntesDeLaCompra);
+    });
   });
 
   it("CompraError conserva el statusCode", () => {

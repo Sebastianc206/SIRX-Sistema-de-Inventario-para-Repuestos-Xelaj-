@@ -152,10 +152,39 @@ async function editarProveedor(idProveedor, datos) {
   return formatearProveedor(actualizado);
 }
 
+// Eliminación real (opción adicional a la baja lógica de arriba, no un
+// reemplazo): solo para proveedores ya inactivos y sin historial asociado
+// — un Articulo que lo referencia o una CompraMaestro registrada a su
+// nombre son datos que no se pueden perder, así que en ese caso se rechaza
+// y el usuario solo puede seguir usando "Dar de baja".
+async function eliminarProveedor(idProveedor) {
+  const proveedor = await prisma.proveedor.findUnique({ where: { idProveedor } });
+  if (!proveedor) {
+    throw new ProveedorError("Proveedor no encontrado", 404);
+  }
+  if (proveedor.vigente) {
+    throw new ProveedorError("Solo se pueden eliminar proveedores inactivos — primero dalo de baja", 400);
+  }
+
+  const [articulosAsociados, comprasAsociadas] = await Promise.all([
+    prisma.articulo.count({ where: { idProveedor } }),
+    prisma.compraMaestro.count({ where: { idProveedor } }),
+  ]);
+  if (articulosAsociados > 0 || comprasAsociadas > 0) {
+    throw new ProveedorError(
+      "No se puede eliminar: tiene repuestos o compras asociadas. Solo se puede desactivar.",
+      409,
+    );
+  }
+
+  await prisma.proveedor.delete({ where: { idProveedor } });
+}
+
 module.exports = {
   ProveedorError,
   listarProveedores,
   crearProveedor,
   editarProveedor,
   cambiarEstadoProveedor,
+  eliminarProveedor,
 };

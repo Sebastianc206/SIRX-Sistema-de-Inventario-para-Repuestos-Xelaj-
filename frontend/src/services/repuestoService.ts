@@ -35,6 +35,14 @@ async function manejarRespuesta<T>(response: Response): Promise<T> {
   return data as T;
 }
 
+// DELETE responde 204 sin body: no se puede llamar response.json() sobre eso.
+async function manejarRespuestaSinBody(response: Response): Promise<void> {
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new RepuestoApiError(data.message || "Ocurrió un error inesperado", response.status);
+  }
+}
+
 export async function listarRepuestos(filtros: FiltrosRepuestos = {}): Promise<ListarRepuestosResultado> {
   const params = new URLSearchParams();
   if (filtros.pagina) params.set("pagina", String(filtros.pagina));
@@ -87,6 +95,17 @@ export async function cambiarEstadoRepuesto(sku: string, estado: boolean): Promi
   });
   const data = await manejarRespuesta<{ articulo: Repuesto }>(response);
   return data.articulo;
+}
+
+// Eliminación real (opción adicional a cambiarEstadoRepuesto): solo para
+// repuestos ya inactivos y sin historial asociado — el backend rechaza con
+// 409 si tiene compras, ventas o modelos compatibles asociados.
+export async function eliminarRepuesto(sku: string): Promise<void> {
+  const response = await fetch(`${API_URL}/api/repuestos/${encodeURIComponent(sku)}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  return manejarRespuestaSinBody(response);
 }
 
 // T-047: la plantilla es un endpoint autenticado (no un <a href> plano), así

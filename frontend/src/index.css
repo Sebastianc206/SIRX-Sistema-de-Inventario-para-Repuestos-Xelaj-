@@ -609,8 +609,14 @@ label,
   color: var(--color-neutral-700);
 }
 
+/* :not([type="checkbox"]) — sin esto, estas reglas (pensadas para el
+   <input type="date"> de Desde/Hasta) también alcanzaban los checkboxes de
+   ProductoMultiSelect (viven dentro de un <label> de .admin-filtros): el
+   checkbox terminaba estirado a min-width:220px, empujando su texto fuera
+   del panel angosto y forzando scroll horizontal que lo recortaba — no era
+   un problema de flex-direction, ese ya estaba bien aplicado. */
 .admin-filtros select,
-.admin-filtros input {
+.admin-filtros input:not([type="checkbox"]) {
   padding: 0.5rem var(--space-sm);
   font-size: var(--text-sm);
   font-family: inherit;
@@ -620,11 +626,11 @@ label,
   border-radius: var(--radius-sm);
 }
 
-.admin-filtros input {
+.admin-filtros input:not([type="checkbox"]) {
   min-width: 220px;
 }
 
-.admin-filtros input:focus-visible,
+.admin-filtros input:not([type="checkbox"]):focus-visible,
 .admin-filtros select:focus-visible {
   outline: none;
   border-color: var(--color-primary-500);
@@ -676,6 +682,22 @@ label,
 
 .admin-tabla tbody tr:hover {
   background: var(--color-neutral-50);
+}
+
+/* Movimiento anulado (MovimientosPage): sigue apareciendo en la lista (baja
+   lógica, nunca se borra) pero con un tratamiento rojizo sutil para que se
+   distinga de un vistazo de los movimientos activos. */
+.admin-tabla tbody tr.admin-tabla-fila-anulada {
+  background: var(--color-error-bg);
+}
+
+.admin-tabla tbody tr.admin-tabla-fila-anulada:hover {
+  background: var(--color-error-bg);
+  filter: brightness(0.97);
+}
+
+.admin-tabla-fila-anulada td {
+  color: var(--color-error-fg);
 }
 
 .admin-tabla tbody tr:last-child td {
@@ -1559,18 +1581,48 @@ label,
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
-.producto-dropdown-item {
+/* .admin-filtros label (flex-direction: column) tiene (0,1,1) de
+   especificidad y le gana a .producto-dropdown-item sola (0,1,0), así que
+   el checkbox terminaba apilado arriba del texto en vez de a la izquierda
+   — de ahí el selector compuesto acá, que sube la especificidad a (0,2,1). */
+.producto-dropdown-panel .producto-dropdown-item {
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: var(--space-sm);
   padding: 0.35rem var(--space-xs);
   font-size: var(--text-sm);
+  color: var(--color-neutral-900);
   border-radius: var(--radius-sm);
   cursor: pointer;
 }
 
+/* El checkbox no debe estirarse ni encogerse — de lo contrario roba el
+   ancho que necesita el texto para no cortarse. */
+.producto-dropdown-item input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  min-width: 0;
+}
+
+/* El texto sí necesita poder partir línea con nombres largos de producto —
+   sin esto es lo que desbordaba el panel angosto y disparaba el scroll
+   horizontal que lo recortaba. */
+.producto-dropdown-item {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .producto-dropdown-item:hover {
   background: var(--color-neutral-50);
+}
+
+.producto-dropdown-item--todas {
+  border-bottom: 1px solid var(--color-neutral-200);
+  margin-bottom: 0.15rem;
+  padding-bottom: 0.5rem;
+  font-weight: var(--font-medium);
 }
 
 .producto-dropdown-limite {

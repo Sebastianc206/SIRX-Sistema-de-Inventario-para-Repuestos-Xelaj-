@@ -4,12 +4,18 @@ import { Sidebar } from "@/components/Sidebar";
 import { ProveedorFormModal } from "@/components/ProveedorFormModal";
 import {
   cambiarEstadoProveedor,
+  eliminarProveedor,
   listarProveedores,
   ProveedorApiError,
 } from "@/services/proveedorService";
 import type { Proveedor } from "@/types/proveedor";
 
 type ModalState = { modo: "crear" } | { modo: "editar"; proveedor: Proveedor } | null;
+// Un registro solo puede estar confirmando UNA acción a la vez — "estado"
+// (dar de baja/reactivar) o "eliminar" (borrado real, solo visible cuando
+// ya está inactivo) — de ahí la acción como parte de la clave, no un
+// booleano aparte por fila.
+type Confirmacion = { idProveedor: number; accion: "estado" | "eliminar" } | null;
 
 export default function ProveedoresPage() {
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
@@ -18,7 +24,7 @@ export default function ProveedoresPage() {
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [modal, setModal] = useState<ModalState>(null);
-  const [idAConfirmar, setIdAConfirmar] = useState<number | null>(null);
+  const [confirmacion, setConfirmacion] = useState<Confirmacion>(null);
   const [idEnProceso, setIdEnProceso] = useState<number | null>(null);
 
   const cargarProveedores = useCallback(async () => {
@@ -69,7 +75,26 @@ export default function ProveedoresPage() {
       setError(err instanceof ProveedorApiError ? err.message : "No se pudo cambiar el estado");
     } finally {
       setIdEnProceso(null);
-      setIdAConfirmar(null);
+      setConfirmacion(null);
+    }
+  }
+
+  // Eliminación real (opción adicional a la baja lógica de arriba): solo
+  // disponible para proveedores ya inactivos; el backend además rechaza con
+  // 409 si tiene historial asociado (repuestos o compras), con un mensaje
+  // claro que se muestra tal cual.
+  async function handleEliminar(proveedor: Proveedor) {
+    setIdEnProceso(proveedor.idProveedor);
+    setError(null);
+    try {
+      await eliminarProveedor(proveedor.idProveedor);
+      setProveedores((actual) => actual.filter((p) => p.idProveedor !== proveedor.idProveedor));
+      setMensaje(`Se eliminó el proveedor "${proveedor.nombre}".`);
+    } catch (err) {
+      setError(err instanceof ProveedorApiError ? err.message : "No se pudo eliminar el proveedor");
+    } finally {
+      setIdEnProceso(null);
+      setConfirmacion(null);
     }
   }
 
@@ -144,7 +169,7 @@ export default function ProveedoresPage() {
                       </span>
                     </td>
                     <td className="admin-acciones">
-                      {idAConfirmar === fila.idProveedor ? (
+                      {confirmacion?.idProveedor === fila.idProveedor && confirmacion.accion === "estado" ? (
                         <>
                           <span className="modal-helper-text">
                             {fila.vigente ? "¿Dar de baja?" : "¿Reactivar?"}
@@ -160,7 +185,27 @@ export default function ProveedoresPage() {
                           <button
                             type="button"
                             className="btn-secondary"
-                            onClick={() => setIdAConfirmar(null)}
+                            onClick={() => setConfirmacion(null)}
+                            disabled={idEnProceso === fila.idProveedor}
+                          >
+                            Cancelar
+                          </button>
+                        </>
+                      ) : confirmacion?.idProveedor === fila.idProveedor && confirmacion.accion === "eliminar" ? (
+                        <>
+                          <span className="modal-helper-text">¿Eliminar definitivamente?</span>
+                          <button
+                            type="button"
+                            className="btn-danger"
+                            onClick={() => handleEliminar(fila)}
+                            disabled={idEnProceso === fila.idProveedor}
+                          >
+                            {idEnProceso === fila.idProveedor ? "..." : "Confirmar"}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            onClick={() => setConfirmacion(null)}
                             disabled={idEnProceso === fila.idProveedor}
                           >
                             Cancelar
@@ -178,10 +223,19 @@ export default function ProveedoresPage() {
                           <button
                             type="button"
                             className={fila.vigente ? "btn-danger" : "btn-secondary"}
-                            onClick={() => setIdAConfirmar(fila.idProveedor)}
+                            onClick={() => setConfirmacion({ idProveedor: fila.idProveedor, accion: "estado" })}
                           >
                             {fila.vigente ? "Dar de baja" : "Activar"}
                           </button>
+                          {!fila.vigente && (
+                            <button
+                              type="button"
+                              className="btn-danger"
+                              onClick={() => setConfirmacion({ idProveedor: fila.idProveedor, accion: "eliminar" })}
+                            >
+                              Eliminar
+                            </button>
+                          )}
                         </>
                       )}
                     </td>

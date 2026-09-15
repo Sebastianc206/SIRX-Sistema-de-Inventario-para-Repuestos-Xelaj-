@@ -3,10 +3,13 @@ jest.mock("../utils/prismaClient", () => ({
     findMany: jest.fn(),
     findUnique: jest.fn(),
     update: jest.fn(),
+    delete: jest.fn(),
   },
   pais: { findUnique: jest.fn() },
   departamento: { findUnique: jest.fn() },
   municipio: { findUnique: jest.fn() },
+  articulo: { count: jest.fn() },
+  compraMaestro: { count: jest.fn() },
   $transaction: jest.fn(),
 }));
 
@@ -17,6 +20,7 @@ const {
   crearProveedor,
   editarProveedor,
   cambiarEstadoProveedor,
+  eliminarProveedor,
 } = require("./proveedorService");
 
 const PROVEEDOR_BASE = {
@@ -189,6 +193,56 @@ describe("proveedorService", () => {
       const resultado = await cambiarEstadoProveedor(1, true);
 
       expect(resultado.vigente).toBe(true);
+    });
+  });
+
+  describe("eliminarProveedor", () => {
+    it("lanza 404 si el proveedor no existe", async () => {
+      prisma.proveedor.findUnique.mockResolvedValueOnce(null);
+
+      await expect(eliminarProveedor(99)).rejects.toMatchObject({ statusCode: 404 });
+      expect(prisma.articulo.count).not.toHaveBeenCalled();
+    });
+
+    it("rechaza con 400 si el proveedor sigue vigente (hay que darlo de baja primero)", async () => {
+      prisma.proveedor.findUnique.mockResolvedValueOnce({ ...PROVEEDOR_BASE, vigente: true });
+
+      await expect(eliminarProveedor(1)).rejects.toMatchObject({
+        message: "Solo se pueden eliminar proveedores inactivos — primero dalo de baja",
+        statusCode: 400,
+      });
+      expect(prisma.proveedor.delete).not.toHaveBeenCalled();
+    });
+
+    it("rechaza con 409 si tiene repuestos asociados", async () => {
+      prisma.proveedor.findUnique.mockResolvedValueOnce({ ...PROVEEDOR_BASE, vigente: false });
+      prisma.articulo.count.mockResolvedValueOnce(2);
+      prisma.compraMaestro.count.mockResolvedValueOnce(0);
+
+      await expect(eliminarProveedor(1)).rejects.toMatchObject({
+        message: "No se puede eliminar: tiene repuestos o compras asociadas. Solo se puede desactivar.",
+        statusCode: 409,
+      });
+      expect(prisma.proveedor.delete).not.toHaveBeenCalled();
+    });
+
+    it("rechaza con 409 si tiene compras asociadas", async () => {
+      prisma.proveedor.findUnique.mockResolvedValueOnce({ ...PROVEEDOR_BASE, vigente: false });
+      prisma.articulo.count.mockResolvedValueOnce(0);
+      prisma.compraMaestro.count.mockResolvedValueOnce(1);
+
+      await expect(eliminarProveedor(1)).rejects.toMatchObject({ statusCode: 409 });
+      expect(prisma.proveedor.delete).not.toHaveBeenCalled();
+    });
+
+    it("elimina el proveedor inactivo sin historial asociado", async () => {
+      prisma.proveedor.findUnique.mockResolvedValueOnce({ ...PROVEEDOR_BASE, vigente: false });
+      prisma.articulo.count.mockResolvedValueOnce(0);
+      prisma.compraMaestro.count.mockResolvedValueOnce(0);
+
+      await eliminarProveedor(1);
+
+      expect(prisma.proveedor.delete).toHaveBeenCalledWith({ where: { idProveedor: 1 } });
     });
   });
 

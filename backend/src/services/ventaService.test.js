@@ -226,6 +226,49 @@ describe("ventaService", () => {
       });
       expect(resultado.anulada).toBe(true);
     });
+
+    it("HU-14: el stock queda EXACTAMENTE igual al de antes de la venta tras anularla", async () => {
+      // Simula inventario real (no solo verifica la forma del argumento de
+      // update): el mock de tx.inventario.update aplica el increment sobre
+      // un objeto en memoria, así se puede comparar el valor final exacto.
+      const stockAntesDeLaVenta = { "FRE-001": 10, "FIL-002": 5 };
+      const stockTrasLaVenta = { "FRE-001": 8, "FIL-002": 4 }; // 10-2, 5-1
+
+      prisma.salidaMaestro.findUnique.mockResolvedValueOnce({
+        idVenta: 1,
+        anulada: false,
+        detalles: [
+          { sku: "FRE-001", cantidad: 2, idTipoSalida: 1 },
+          { sku: "FIL-002", cantidad: 1, idTipoSalida: 1 },
+        ],
+      });
+
+      const inventario = { ...stockTrasLaVenta };
+      prisma.$transaction.mockImplementationOnce(async (callback) =>
+        callback({
+          inventario: {
+            update: jest.fn(({ where, data }) => {
+              inventario[where.sku] += data.cantidad.increment;
+              return Promise.resolve();
+            }),
+          },
+          salidaMaestro: { update: jest.fn() },
+        }),
+      );
+      prisma.salidaMaestro.findUnique.mockResolvedValueOnce({
+        idVenta: 1,
+        anulada: true,
+        fechaSalida: new Date(),
+        montoTotalVenta: 350,
+        cliente: null,
+        colaborador: null,
+        detalles: [],
+      });
+
+      await anularVenta(1);
+
+      expect(inventario).toEqual(stockAntesDeLaVenta);
+    });
   });
 
   it("VentaError conserva el statusCode", () => {

@@ -235,6 +235,47 @@ describe("salidaAjusteService", () => {
       });
       expect(resultado.anulada).toBe(true);
     });
+
+    it("el stock queda EXACTAMENTE igual al de antes del ajuste/merma tras anularlo", async () => {
+      // Simula inventario real (no solo verifica la forma del argumento de
+      // update): el mock de tx.inventario.update aplica el increment sobre
+      // un objeto en memoria, así se puede comparar el valor final exacto.
+      const stockAntesDelAjuste = { "FRE-001": 10, "FIL-002": 5 };
+      const stockTrasElAjuste = { "FRE-001": 7, "FIL-002": 4 }; // 10-3 (merma), 5-1 (garantía)
+
+      prisma.salidaMaestro.findUnique.mockResolvedValueOnce({
+        idVenta: 1,
+        anulada: false,
+        detalles: [
+          { sku: "FRE-001", cantidad: 3, idTipoSalida: 2 },
+          { sku: "FIL-002", cantidad: 1, idTipoSalida: 4 },
+        ],
+      });
+
+      const inventario = { ...stockTrasElAjuste };
+      prisma.$transaction.mockImplementationOnce(async (callback) =>
+        callback({
+          inventario: {
+            update: jest.fn(({ where, data }) => {
+              inventario[where.sku] += data.cantidad.increment;
+              return Promise.resolve();
+            }),
+          },
+          salidaMaestro: { update: jest.fn() },
+        }),
+      );
+      prisma.salidaMaestro.findUnique.mockResolvedValueOnce({
+        idVenta: 1,
+        anulada: true,
+        fechaSalida: new Date(),
+        colaborador: null,
+        detalles: [],
+      });
+
+      await anularSalidaAjuste(1);
+
+      expect(inventario).toEqual(stockAntesDelAjuste);
+    });
   });
 
   it("SalidaAjusteError conserva el statusCode", () => {

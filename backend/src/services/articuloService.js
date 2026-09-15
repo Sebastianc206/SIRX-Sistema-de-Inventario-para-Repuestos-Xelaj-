@@ -381,6 +381,39 @@ async function cambiarEstadoArticulo(sku, estado) {
   return obtenerArticuloPorSku(sku, { ocultarDatosSensibles: false });
 }
 
+// Eliminación real (opción adicional a la baja lógica de arriba, no un
+// reemplazo): solo para repuestos ya inactivos y sin historial asociado —
+// una línea de compra/venta/ajuste o un modelo compatible registrado son
+// datos que no se pueden perder, así que en ese caso se rechaza y el
+// usuario solo puede seguir usando "Dar de baja". Inventario se borra en la
+// misma transacción porque es 1—1 con Articulo (su FK no tiene cascada).
+async function eliminarArticulo(sku) {
+  const articulo = await prisma.articulo.findUnique({ where: { sku } });
+  if (!articulo) {
+    throw new ArticuloError("Repuesto no encontrado", 404);
+  }
+  if (articulo.estado) {
+    throw new ArticuloError("Solo se pueden eliminar repuestos inactivos — primero dalo de baja", 400);
+  }
+
+  const [comprasAsociadas, salidasAsociadas, modelosAsociados] = await Promise.all([
+    prisma.compraDetalle.count({ where: { sku } }),
+    prisma.salidaDetalle.count({ where: { sku } }),
+    prisma.modeloCompatible.count({ where: { sku } }),
+  ]);
+  if (comprasAsociadas > 0 || salidasAsociadas > 0 || modelosAsociados > 0) {
+    throw new ArticuloError(
+      "No se puede eliminar: tiene compras/ventas asociadas. Solo se puede desactivar.",
+      409,
+    );
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.inventario.deleteMany({ where: { sku } });
+    await tx.articulo.delete({ where: { sku } });
+  });
+}
+
 module.exports = {
   ArticuloError,
   listarArticulos,
@@ -389,4 +422,5 @@ module.exports = {
   editarArticulo,
   cambiarEstadoArticulo,
   crearArticulosEnLote,
+  eliminarArticulo,
 };

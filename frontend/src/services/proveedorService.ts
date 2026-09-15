@@ -28,6 +28,14 @@ async function manejarRespuesta<T>(response: Response): Promise<T> {
   return data as T;
 }
 
+// DELETE responde 204 sin body: no se puede llamar response.json() sobre eso.
+async function manejarRespuestaSinBody(response: Response): Promise<void> {
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new ProveedorApiError(data.message || "Ocurrió un error inesperado", response.status);
+  }
+}
+
 // vigente=true filtra los proveedores dados de baja — usarlo en cualquier
 // selector (ProveedorSelect/ProveedorRequeridoSelect) para que uno inactivo
 // no se pueda asignar a un repuesto ni a una compra nueva. Sin el filtro
@@ -69,4 +77,15 @@ export async function cambiarEstadoProveedor(idProveedor: number, vigente: boole
   });
   const data = await manejarRespuesta<{ proveedor: Proveedor }>(response);
   return data.proveedor;
+}
+
+// Eliminación real (opción adicional a cambiarEstadoProveedor): solo para
+// proveedores ya inactivos y sin historial asociado — el backend rechaza
+// con 409 si tiene repuestos o compras asociadas.
+export async function eliminarProveedor(idProveedor: number): Promise<void> {
+  const response = await fetch(`${API_URL}/api/proveedores/${idProveedor}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  return manejarRespuestaSinBody(response);
 }

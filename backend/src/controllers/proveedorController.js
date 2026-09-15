@@ -4,6 +4,7 @@ const {
   crearProveedor,
   editarProveedor,
   cambiarEstadoProveedor,
+  eliminarProveedor,
 } = require("../services/proveedorService");
 
 function manejarError(res, error) {
@@ -71,4 +72,22 @@ async function cambiarEstadoController(req, res) {
   }
 }
 
-module.exports = { listarController, crearController, editarController, cambiarEstadoController };
+async function eliminarController(req, res) {
+  const idProveedor = parseIdProveedor(req, res);
+  if (idProveedor === null) return;
+
+  try {
+    await eliminarProveedor(idProveedor);
+    return res.status(204).send();
+  } catch (error) {
+    return manejarError(res, error);
+  }
+}
+
+module.exports = {
+  listarController,
+  crearController,
+  editarController,
+  cambiarEstadoController,
+  eliminarController,
+};

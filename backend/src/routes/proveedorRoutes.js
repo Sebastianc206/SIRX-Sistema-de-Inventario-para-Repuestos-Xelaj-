@@ -6,6 +6,7 @@ const {
   crearController,
   editarController,
   cambiarEstadoController,
+  eliminarController,
 } = require("../controllers/proveedorController");
 
 const router = express.Router();
@@ -20,5 +21,8 @@ router.get("/", listarController);
 router.post("/", crearController);
 router.put("/:id", editarController);
 router.patch("/:id/estado", cambiarEstadoController);
+// Eliminación real (opcional, ver proveedorService.js): solo para
+// proveedores ya inactivos y sin historial asociado.
+router.delete("/:id", eliminarController);
 
 module.exports = router;

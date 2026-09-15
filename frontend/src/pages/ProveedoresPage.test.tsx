@@ -6,9 +6,10 @@ import ProveedoresPage from "@/pages/ProveedoresPage";
 import { ProveedorApiError } from "@/services/proveedorService";
 import type { Proveedor } from "@/types/proveedor";
 
-const { mockListarProveedores, mockCambiarEstadoProveedor } = vi.hoisted(() => ({
+const { mockListarProveedores, mockCambiarEstadoProveedor, mockEliminarProveedor } = vi.hoisted(() => ({
   mockListarProveedores: vi.fn(),
   mockCambiarEstadoProveedor: vi.fn(),
+  mockEliminarProveedor: vi.fn(),
 }));
 
 vi.mock("@/services/proveedorService", async () => {
@@ -19,6 +20,7 @@ vi.mock("@/services/proveedorService", async () => {
     ...actual,
     listarProveedores: mockListarProveedores,
     cambiarEstadoProveedor: mockCambiarEstadoProveedor,
+    eliminarProveedor: mockEliminarProveedor,
   };
 });
 
@@ -142,5 +144,49 @@ describe("ProveedoresPage", () => {
 
     expect(mockCambiarEstadoProveedor).toHaveBeenCalledWith(1, true);
     expect(await screen.findByText(/se reactivó el proveedor/i)).toBeInTheDocument();
+  });
+
+  it("no muestra el botón Eliminar mientras el proveedor sigue vigente", async () => {
+    mockListarProveedores.mockResolvedValueOnce(proveedores);
+    renderPage();
+    const fila = (await screen.findByText("Repuestos Guate S.A.")).closest("tr") as HTMLElement;
+
+    expect(within(fila).queryByRole("button", { name: /^eliminar$/i })).not.toBeInTheDocument();
+  });
+
+  it("elimina de verdad un proveedor inactivo sin historial asociado", async () => {
+    mockListarProveedores.mockResolvedValueOnce([{ ...proveedores[0], vigente: false }]);
+    mockEliminarProveedor.mockResolvedValueOnce(undefined);
+    renderPage();
+    const fila = (await screen.findByText("Repuestos Guate S.A.")).closest("tr") as HTMLElement;
+
+    await userEvent.click(within(fila).getByRole("button", { name: /^eliminar$/i }));
+    expect(within(fila).getByText(/¿eliminar definitivamente\?/i)).toBeInTheDocument();
+
+    await userEvent.click(within(fila).getByRole("button", { name: /confirmar/i }));
+
+    expect(mockEliminarProveedor).toHaveBeenCalledWith(1);
+    expect(await screen.findByText(/se eliminó el proveedor/i)).toBeInTheDocument();
+    expect(screen.queryByText("Repuestos Guate S.A.")).not.toBeInTheDocument();
+  });
+
+  it("muestra el mensaje del backend si el proveedor tiene historial asociado", async () => {
+    mockListarProveedores.mockResolvedValueOnce([{ ...proveedores[0], vigente: false }]);
+    mockEliminarProveedor.mockRejectedValueOnce(
+      new ProveedorApiError(
+        "No se puede eliminar: tiene repuestos o compras asociadas. Solo se puede desactivar.",
+        409,
+      ),
+    );
+    renderPage();
+    const fila = (await screen.findByText("Repuestos Guate S.A.")).closest("tr") as HTMLElement;
+
+    await userEvent.click(within(fila).getByRole("button", { name: /^eliminar$/i }));
+    await userEvent.click(within(fila).getByRole("button", { name: /confirmar/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "No se puede eliminar: tiene repuestos o compras asociadas. Solo se puede desactivar.",
+    );
+    expect(screen.getByText("Repuestos Guate S.A.")).toBeInTheDocument();
   });
 });
