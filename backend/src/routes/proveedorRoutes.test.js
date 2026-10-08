@@ -2,6 +2,8 @@ const mockProveedorService = {
   listarProveedores: jest.fn(),
   crearProveedor: jest.fn(),
   editarProveedor: jest.fn(),
+  cambiarEstadoProveedor: jest.fn(),
+  eliminarProveedor: jest.fn(),
 };
 
 jest.mock("../services/proveedorService", () => ({
@@ -132,6 +134,87 @@ describe("Rutas /api/proveedores", () => {
 
       expect(respuesta.status).toBe(200);
       expect(mockProveedorService.editarProveedor).toHaveBeenCalledWith(1, { nombre: "Nuevo nombre" });
+    });
+  });
+
+  describe("PATCH /api/proveedores/:id/estado", () => {
+    it("T-039: rechaza a Operador con 403", async () => {
+      const respuesta = await request(app)
+        .patch("/api/proveedores/1/estado")
+        .set("Authorization", `Bearer ${token("Operador")}`)
+        .send({ vigente: false });
+
+      expect(respuesta.status).toBe(403);
+      expect(mockProveedorService.cambiarEstadoProveedor).not.toHaveBeenCalled();
+    });
+
+    it("rechaza si vigente no es booleano", async () => {
+      const respuesta = await request(app)
+        .patch("/api/proveedores/1/estado")
+        .set("Authorization", `Bearer ${token("Administrador")}`)
+        .send({ vigente: "no" });
+
+      expect(respuesta.status).toBe(400);
+      expect(mockProveedorService.cambiarEstadoProveedor).not.toHaveBeenCalled();
+    });
+
+    it("da de baja el proveedor cuando Administrador envía vigente=false", async () => {
+      mockProveedorService.cambiarEstadoProveedor.mockResolvedValueOnce({
+        idProveedor: 1,
+        nombre: "Repuestos Guate S.A.",
+        vigente: false,
+      });
+
+      const respuesta = await request(app)
+        .patch("/api/proveedores/1/estado")
+        .set("Authorization", `Bearer ${token("Administrador")}`)
+        .send({ vigente: false });
+
+      expect(respuesta.status).toBe(200);
+      expect(mockProveedorService.cambiarEstadoProveedor).toHaveBeenCalledWith(1, false);
+      expect(respuesta.body.proveedor.vigente).toBe(false);
+    });
+  });
+
+  describe("DELETE /api/proveedores/:id", () => {
+    it("T-039: rechaza a Operador con 403", async () => {
+      const respuesta = await request(app)
+        .delete("/api/proveedores/1")
+        .set("Authorization", `Bearer ${token("Operador")}`);
+
+      expect(respuesta.status).toBe(403);
+      expect(mockProveedorService.eliminarProveedor).not.toHaveBeenCalled();
+    });
+
+    it("rechaza un id no numérico con 400", async () => {
+      const respuesta = await request(app)
+        .delete("/api/proveedores/abc")
+        .set("Authorization", `Bearer ${token("Administrador")}`);
+
+      expect(respuesta.status).toBe(400);
+    });
+
+    it("elimina el proveedor y responde 204 cuando Administrador lo solicita", async () => {
+      mockProveedorService.eliminarProveedor.mockResolvedValueOnce(undefined);
+
+      const respuesta = await request(app)
+        .delete("/api/proveedores/1")
+        .set("Authorization", `Bearer ${token("Administrador")}`);
+
+      expect(respuesta.status).toBe(204);
+      expect(mockProveedorService.eliminarProveedor).toHaveBeenCalledWith(1);
+    });
+
+    it("traduce a 409 el ProveedorError si tiene historial asociado", async () => {
+      mockProveedorService.eliminarProveedor.mockRejectedValueOnce(
+        new ProveedorError("No se puede eliminar: tiene repuestos o compras asociadas. Solo se puede desactivar.", 409),
+      );
+
+      const respuesta = await request(app)
+        .delete("/api/proveedores/1")
+        .set("Authorization", `Bearer ${token("Administrador")}`);
+
+      expect(respuesta.status).toBe(409);
     });
   });
 });

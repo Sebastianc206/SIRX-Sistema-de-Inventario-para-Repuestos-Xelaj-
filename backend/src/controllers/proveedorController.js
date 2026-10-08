@@ -3,6 +3,8 @@ const {
   listarProveedores,
   crearProveedor,
   editarProveedor,
+  cambiarEstadoProveedor,
+  eliminarProveedor,
 } = require("../services/proveedorService");
 
 function manejarError(res, error) {
@@ -23,9 +25,10 @@ function parseIdProveedor(req, res) {
   return idProveedor;
 }
 
-async function listarController(_req, res) {
+async function listarController(req, res) {
   try {
-    return res.json({ proveedores: await listarProveedores() });
+    const vigente = req.query.vigente === "true" ? true : undefined;
+    return res.json({ proveedores: await listarProveedores({ vigente }) });
   } catch (error) {
     return manejarError(res, error);
   }
@@ -52,4 +55,39 @@ async function editarController(req, res) {
   }
 }
 
-module.exports = { listarController, crearController, editarController };
+async function cambiarEstadoController(req, res) {
+  const idProveedor = parseIdProveedor(req, res);
+  if (idProveedor === null) return;
+
+  const { vigente } = req.body;
+  if (typeof vigente !== "boolean") {
+    return res.status(400).json({ message: "vigente debe ser un valor booleano" });
+  }
+
+  try {
+    const proveedor = await cambiarEstadoProveedor(idProveedor, vigente);
+    return res.json({ proveedor });
+  } catch (error) {
+    return manejarError(res, error);
+  }
+}
+
+async function eliminarController(req, res) {
+  const idProveedor = parseIdProveedor(req, res);
+  if (idProveedor === null) return;
+
+  try {
+    await eliminarProveedor(idProveedor);
+    return res.status(204).send();
+  } catch (error) {
+    return manejarError(res, error);
+  }
+}
+
+module.exports = {
+  listarController,
+  crearController,
+  editarController,
+  cambiarEstadoController,
+  eliminarController,
+};

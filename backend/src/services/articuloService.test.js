@@ -9,6 +9,9 @@ jest.mock("../utils/prismaClient", () => ({
   marca: { findUnique: jest.fn(), findFirst: jest.fn() },
   proveedor: { findUnique: jest.fn(), findFirst: jest.fn() },
   modelo: { findMany: jest.fn() },
+  compraDetalle: { count: jest.fn() },
+  salidaDetalle: { count: jest.fn() },
+  modeloCompatible: { count: jest.fn() },
   $transaction: jest.fn(),
 }));
 
@@ -21,6 +24,7 @@ const {
   editarArticulo,
   cambiarEstadoArticulo,
   crearArticulosEnLote,
+  eliminarArticulo,
 } = require("./articuloService");
 
 const ARTICULO_BASE = {
@@ -340,6 +344,58 @@ describe("articuloService", () => {
         where: { sku: "FRE-001" },
         data: { estado: false },
       });
+    });
+  });
+
+  describe("eliminarArticulo", () => {
+    it("lanza 404 si el repuesto no existe", async () => {
+      prisma.articulo.findUnique.mockResolvedValueOnce(null);
+
+      await expect(eliminarArticulo("NO-EXISTE")).rejects.toMatchObject({ statusCode: 404 });
+      expect(prisma.compraDetalle.count).not.toHaveBeenCalled();
+    });
+
+    it("rechaza con 400 si el repuesto sigue activo (hay que darlo de baja primero)", async () => {
+      prisma.articulo.findUnique.mockResolvedValueOnce({ ...ARTICULO_BASE, estado: true });
+
+      await expect(eliminarArticulo("FRE-001")).rejects.toMatchObject({
+        message: "Solo se pueden eliminar repuestos inactivos — primero dalo de baja",
+        statusCode: 400,
+      });
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it("rechaza con 409 si tiene compras, ventas o modelos compatibles asociados", async () => {
+      prisma.articulo.findUnique.mockResolvedValueOnce({ ...ARTICULO_BASE, estado: false });
+      prisma.compraDetalle.count.mockResolvedValueOnce(1);
+      prisma.salidaDetalle.count.mockResolvedValueOnce(0);
+      prisma.modeloCompatible.count.mockResolvedValueOnce(0);
+
+      await expect(eliminarArticulo("FRE-001")).rejects.toMatchObject({
+        message: "No se puede eliminar: tiene compras/ventas asociadas. Solo se puede desactivar.",
+        statusCode: 409,
+      });
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it("elimina el repuesto inactivo sin historial asociado (junto con su inventario)", async () => {
+      prisma.articulo.findUnique.mockResolvedValueOnce({ ...ARTICULO_BASE, estado: false });
+      prisma.compraDetalle.count.mockResolvedValueOnce(0);
+      prisma.salidaDetalle.count.mockResolvedValueOnce(0);
+      prisma.modeloCompatible.count.mockResolvedValueOnce(0);
+      const txDeleteInventario = jest.fn();
+      const txDeleteArticulo = jest.fn();
+      prisma.$transaction.mockImplementationOnce(async (callback) =>
+        callback({
+          inventario: { deleteMany: txDeleteInventario },
+          articulo: { delete: txDeleteArticulo },
+        }),
+      );
+
+      await eliminarArticulo("FRE-001");
+
+      expect(txDeleteInventario).toHaveBeenCalledWith({ where: { sku: "FRE-001" } });
+      expect(txDeleteArticulo).toHaveBeenCalledWith({ where: { sku: "FRE-001" } });
     });
   });
 

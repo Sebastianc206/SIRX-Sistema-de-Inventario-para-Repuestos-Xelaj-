@@ -8,6 +8,11 @@ const categoriaRoutes = require("./routes/categoriaRoutes");
 const articuloRoutes = require("./routes/articuloRoutes");
 const proveedorRoutes = require("./routes/proveedorRoutes");
 const catalogosAuxiliaresRoutes = require("./routes/catalogosAuxiliaresRoutes");
+const compraRoutes = require("./routes/compraRoutes");
+const salidaAjusteRoutes = require("./routes/salidaAjusteRoutes");
+const ventaRoutes = require("./routes/ventaRoutes");
+const movimientoRoutes = require("./routes/movimientoRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 
 // T-105: fail fast. Si JWT_SECRET/JWT_EXPIRES_IN no cumplen la política de
 // sesión corta, el servidor ni siquiera termina de arrancar — mejor eso
@@ -38,5 +43,10 @@ app.use("/api/categorias", categoriaRoutes);
 app.use("/api/repuestos", articuloRoutes);
 app.use("/api/proveedores", proveedorRoutes);
 app.use("/api/catalogos", catalogosAuxiliaresRoutes);
+app.use("/api/compras", compraRoutes);
+app.use("/api/ajustes-inventario", salidaAjusteRoutes);
+app.use("/api/ventas", ventaRoutes);
+app.use("/api/movimientos", movimientoRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 module.exports = app;

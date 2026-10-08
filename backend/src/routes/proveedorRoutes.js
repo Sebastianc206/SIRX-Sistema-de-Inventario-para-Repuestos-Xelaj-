@@ -1,7 +1,13 @@
 const express = require("express");
 const authMiddleware = require("../middlewares/authMiddleware");
 const authorize = require("../middlewares/roleMiddleware");
-const { listarController, crearController, editarController } = require("../controllers/proveedorController");
+const {
+  listarController,
+  crearController,
+  editarController,
+  cambiarEstadoController,
+  eliminarController,
+} = require("../controllers/proveedorController");
 
 const router = express.Router();
 
@@ -14,5 +20,9 @@ router.use(authMiddleware, authorize("Administrador"));
 router.get("/", listarController);
 router.post("/", crearController);
 router.put("/:id", editarController);
+router.patch("/:id/estado", cambiarEstadoController);
+// Eliminación real (opcional, ver proveedorService.js): solo para
+// proveedores ya inactivos y sin historial asociado.
+router.delete("/:id", eliminarController);
 
 module.exports = router;

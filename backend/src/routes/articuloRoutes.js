@@ -10,6 +10,7 @@ const {
   cambiarEstadoController,
   descargarPlantillaController,
   cargaMasivaController,
+  eliminarController,
 } = require("../controllers/articuloController");
 
 const router = express.Router();
@@ -34,5 +35,8 @@ router.post(
 );
 router.put("/:sku", authorize("Administrador"), editarController);
 router.patch("/:sku/estado", authorize("Administrador"), cambiarEstadoController);
+// Eliminación real (opcional, ver articuloService.js): solo para repuestos
+// ya inactivos y sin historial asociado.
+router.delete("/:sku", authorize("Administrador"), eliminarController);
 
 module.exports = router;

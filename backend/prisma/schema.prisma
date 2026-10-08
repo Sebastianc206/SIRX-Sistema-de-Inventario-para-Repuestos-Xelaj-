@@ -21,7 +21,7 @@ datasource db {
 }
 
 model Colaborador {
-  idColaborador Int      @id @map("id_colaborador")
+  idColaborador Int      @id(map: "pk_colaborador") @map("id_colaborador")
   nombres       String
   primerApel    String   @map("primer_apel")
   segundoApel   String?  @map("segundo_apel")
@@ -39,7 +39,7 @@ model Colaborador {
 }
 
 model Rol {
-  idRol       Int    @id @map("id_rol")
+  idRol       Int    @id(map: "pk_rol") @map("id_rol")
   descripcion String
 
   plazas Plaza[]
@@ -48,21 +48,21 @@ model Rol {
 }
 
 model Plaza {
-  idPlaza       Int       @id @map("id_plaza")
+  idPlaza       Int       @id(map: "pk_plaza") @map("id_plaza")
   fechaInicio   DateTime  @map("fecha_inicio")
   fechaFin      DateTime? @map("fecha_fin")
   fecTransac    DateTime  @default(now()) @map("fec_transac")
   idRol         Int       @map("id_rol")
   idColaborador Int       @map("id_colaborador")
 
-  rol         Rol         @relation(fields: [idRol], references: [idRol])
-  colaborador Colaborador @relation(fields: [idColaborador], references: [idColaborador])
+  rol         Rol         @relation(fields: [idRol], references: [idRol], map: "fk_plaza_rol")
+  colaborador Colaborador @relation(fields: [idColaborador], references: [idColaborador], map: "fk_plaza_colaborador")
 
   @@map("plaza")
 }
 
 model Departamento {
-  idDepartamento Int    @id @map("id_departamento")
+  idDepartamento Int    @id(map: "pk_departamento") @map("id_departamento")
   nombre         String
 
   municipios  Municipio[]
@@ -73,11 +73,11 @@ model Departamento {
 }
 
 model Municipio {
-  idMunicipio    Int    @id @map("id_municipio")
+  idMunicipio    Int    @id(map: "pk_municipio") @map("id_municipio")
   nombre         String
   idDepartamento Int    @map("id_departamento")
 
-  departamento Departamento @relation(fields: [idDepartamento], references: [idDepartamento])
+  departamento Departamento @relation(fields: [idDepartamento], references: [idDepartamento], map: "fk_municipio_departamento")
   proveedores  Proveedor[]
   clientes     Cliente[]
 
@@ -85,7 +85,7 @@ model Municipio {
 }
 
 model Pais {
-  idPais Int    @id @map("id_pais")
+  idPais Int    @id(map: "pk_pais") @map("id_pais")
   nombre String
 
   proveedores Proveedor[]
@@ -95,7 +95,7 @@ model Pais {
 }
 
 model Proveedor {
-  idProveedor    Int     @id @map("id_proveedor")
+  idProveedor    Int     @id(map: "pk_proveedor") @map("id_proveedor")
   nombre         String
   direccion      String?
   vigente        Boolean @default(true)
@@ -104,9 +104,9 @@ model Proveedor {
   idDepartamento Int?    @map("id_departamento")
   idPais         Int     @map("id_pais")
 
-  municipio    Municipio?      @relation(fields: [idMunicipio], references: [idMunicipio])
-  departamento Departamento?   @relation(fields: [idDepartamento], references: [idDepartamento])
-  pais         Pais            @relation(fields: [idPais], references: [idPais])
+  municipio    Municipio?      @relation(fields: [idMunicipio], references: [idMunicipio], map: "fk_proveedor_municipio")
+  departamento Departamento?   @relation(fields: [idDepartamento], references: [idDepartamento], map: "fk_proveedor_departamento")
+  pais         Pais            @relation(fields: [idPais], references: [idPais], map: "fk_proveedor_pais")
   compras      CompraMaestro[]
   articulos    Articulo[]
 
@@ -114,7 +114,7 @@ model Proveedor {
 }
 
 model Categoria {
-  idCategoria Int    @id @map("id_categoria")
+  idCategoria Int    @id(map: "pk_categoria") @map("id_categoria")
   descripcion String
 
   articulos Articulo[]
@@ -123,7 +123,7 @@ model Categoria {
 }
 
 model Marca {
-  idMarca Int    @id @map("id_marca")
+  idMarca Int    @id(map: "pk_marca") @map("id_marca")
   nombre  String
 
   articulos Articulo[]
@@ -136,20 +136,20 @@ model Marca {
 // preferido de un repuesto son datos sensibles — el rol Operador nunca los
 // recibe (ver articuloService.js, formatearArticulo).
 model Articulo {
-  sku              String  @id
+  sku              String  @id(map: "pk_articulo")
   nombre           String
   inventarioMinimo Int     @default(0) @map("inventario_minimo")
-  precioVenta      Decimal @map("precio_venta")
-  precioCosto      Decimal @map("precio_costo")
+  precioVenta      Decimal @map("precio_venta") @db.Decimal
+  precioCosto      Decimal @map("precio_costo") @db.Decimal
   ubicacion        String?
   estado           Boolean @default(true)
   idCategoria      Int     @map("id_categoria")
   idMarca          Int?    @map("id_marca")
   idProveedor      Int?    @map("id_proveedor")
 
-  categoria          Categoria          @relation(fields: [idCategoria], references: [idCategoria])
-  marca              Marca?             @relation(fields: [idMarca], references: [idMarca])
-  proveedor          Proveedor?         @relation(fields: [idProveedor], references: [idProveedor])
+  categoria          Categoria          @relation(fields: [idCategoria], references: [idCategoria], map: "fk_articulo_categoria")
+  marca              Marca?             @relation(fields: [idMarca], references: [idMarca], map: "fk_articulo_marca")
+  proveedor          Proveedor?         @relation(fields: [idProveedor], references: [idProveedor], map: "fk_articulo_proveedor")
   inventario         Inventario?
   modelosCompatibles ModeloCompatible[]
   salidaDetalles     SalidaDetalle[]
@@ -161,15 +161,15 @@ model Articulo {
 model Inventario {
   cantidad   Int      @default(0)
   fecTransac DateTime @default(now()) @map("fec_transac")
-  sku        String   @id
+  sku        String   @id(map: "pk_inventario")
 
-  articulo Articulo @relation(fields: [sku], references: [sku])
+  articulo Articulo @relation(fields: [sku], references: [sku], map: "fk_inventario_articulo")
 
   @@map("inventario")
 }
 
 model Cliente {
-  idCliente      Int     @id @map("id_cliente")
+  idCliente      Int     @id(map: "pk_cliente") @map("id_cliente")
   nombre         String
   direccion      String?
   contacto       String?
@@ -177,86 +177,112 @@ model Cliente {
   idMunicipio    Int?    @map("id_municipio")
   idPais         Int     @map("id_pais")
 
-  departamento Departamento?   @relation(fields: [idDepartamento], references: [idDepartamento])
-  municipio    Municipio?      @relation(fields: [idMunicipio], references: [idMunicipio])
-  pais         Pais            @relation(fields: [idPais], references: [idPais])
+  departamento Departamento?   @relation(fields: [idDepartamento], references: [idDepartamento], map: "fk_cliente_departamento")
+  municipio    Municipio?      @relation(fields: [idMunicipio], references: [idMunicipio], map: "fk_cliente_municipio")
+  pais         Pais            @relation(fields: [idPais], references: [idPais], map: "fk_cliente_pais")
   ventas       SalidaMaestro[]
 
   @@map("cliente")
 }
 
 model TipoSalida {
-  idTipoSalida Int    @id @map("id_tipo_salida")
+  idTipoSalida Int    @id(map: "pk_tipo_salida") @map("id_tipo_salida")
   descripcion  String
 
-  salidas SalidaMaestro[]
+  salidas SalidaDetalle[]
 
   @@map("tipo_salida")
 }
 
 model SalidaMaestro {
-  idVenta         Int       @id @map("id_venta")
+  idVenta         Int       @id(map: "pk_salida_maestro") @map("id_venta")
   fechaSalida     DateTime  @map("fecha_salida")
   fechaPago       DateTime? @map("fecha_pago")
-  montoTotalVenta Decimal?  @map("monto_total_venta")
+  montoTotalVenta Decimal?  @map("monto_total_venta") @db.Decimal
   idColaborador   Int       @map("id_colaborador")
   idCliente       Int?      @map("id_cliente")
-  idTipoSalida    Int       @map("id_tipo_salida")
+  // Baja lógica de una venta (nunca se borra el registro): Administrador
+  // puede anularla, lo que restaura el stock de cada línea en la misma
+  // transacción. Se excluye de comparación de ventas y de cualquier
+  // reporte que sume ventas (dashboardService.js), pero sigue visible en
+  // el historial con el badge "Anulada".
+  anulada         Boolean   @default(false)
 
-  colaborador Colaborador    @relation(fields: [idColaborador], references: [idColaborador])
-  cliente     Cliente?       @relation(fields: [idCliente], references: [idCliente])
-  tipoSalida  TipoSalida     @relation(fields: [idTipoSalida], references: [idTipoSalida])
-  detalle     SalidaDetalle?
+  colaborador Colaborador     @relation(fields: [idColaborador], references: [idColaborador], map: "fk_salidamaestro_colaborador")
+  cliente     Cliente?        @relation(fields: [idCliente], references: [idCliente], map: "fk_salidamaestro_cliente")
+  detalles    SalidaDetalle[]
 
   @@map("salida_maestro")
 }
 
+// HU-13: una salida (venta o ajuste/merma) puede tener varias líneas de
+// producto — por eso idDetalleSalida es su propia PK y idSalida es una FK
+// normal (no compartida) hacia el maestro. Antes de esta migración era 1—1.
+//
+// idTipoSalida vive acá (no en SalidaMaestro) desde la migración
+// `20260914000000_...`: cada línea de un ajuste puede tener su propio
+// motivo (Merma/Uso interno/Garantía/Ajuste) — antes era un solo motivo
+// por todo el registro. Una venta (HU-13) sigue escribiendo el mismo
+// idTipoSalida=1 (Venta) en todas sus líneas, así que "es esto una venta o
+// un ajuste" se sigue pudiendo determinar por línea, o por el conjunto de
+// líneas del maestro (ver ventaService.js/salidaAjusteService.js).
 model SalidaDetalle {
-  cantidad    Int
-  precioVenta Decimal?  @map("precio_venta")
-  fecCompra   DateTime  @map("fec_compra")
-  idSalida    Int       @id @map("id_salida")
-  sku         String
+  idDetalleSalida Int      @id(map: "pk_salida_detalle") @map("id_detalle_salida")
+  cantidad        Int
+  precioVenta     Decimal? @map("precio_venta") @db.Decimal
+  fecCompra       DateTime @map("fec_compra")
+  idSalida        Int      @map("id_salida")
+  sku             String
+  idTipoSalida    Int      @map("id_tipo_salida")
 
-  salidaMaestro SalidaMaestro @relation(fields: [idSalida], references: [idVenta])
-  articulo      Articulo      @relation(fields: [sku], references: [sku])
+  salidaMaestro SalidaMaestro @relation(fields: [idSalida], references: [idVenta], map: "fk_salidadetalle_salidamaestro")
+  articulo      Articulo      @relation(fields: [sku], references: [sku], map: "fk_salidadetalle_articulo")
+  tipoSalida    TipoSalida    @relation(fields: [idTipoSalida], references: [idTipoSalida], map: "fk_salidadetalle_tiposalida")
 
   @@map("salida_detalle")
 }
 
 model CompraMaestro {
-  idCompra         Int       @id @map("id_compra")
+  idCompra         Int       @id(map: "pk_compra_maestro") @map("id_compra")
   fechaCompra      DateTime  @map("fecha_compra")
   fechaPago        DateTime? @map("fecha_pago")
-  montoTotalCompra Decimal   @map("monto_total_compra")
+  montoTotalCompra Decimal   @map("monto_total_compra") @db.Decimal
   idColaborador    Int       @map("id_colaborador")
   idProveedor      Int       @map("id_proveedor")
+  // Baja lógica de una compra (nunca se borra el registro): Administrador
+  // puede anularla, lo que decrementa el stock de cada línea en la misma
+  // transacción — mismo patrón que SalidaMaestro.anulada para ventas/ajustes.
+  anulada          Boolean   @default(false)
 
-  colaborador Colaborador    @relation(fields: [idColaborador], references: [idColaborador])
-  proveedor   Proveedor      @relation(fields: [idProveedor], references: [idProveedor])
-  detalle     CompraDetalle?
+  colaborador Colaborador     @relation(fields: [idColaborador], references: [idColaborador], map: "fk_compramaestro_colaborador")
+  proveedor   Proveedor       @relation(fields: [idProveedor], references: [idProveedor], map: "fk_compramaestro_proveedor")
+  detalles    CompraDetalle[]
 
   @@map("compra_maestro")
 }
 
+// HU-08: una compra puede traer varios SKUs — mismo cambio 1—1 -> 1—N que
+// SalidaDetalle, y por la misma razón (idDetalleCompra PK propia, idCompra
+// FK normal hacia el maestro).
 model CompraDetalle {
-  precioCompra Decimal  @map("precio_compra")
-  cantidad     Int
-  fecCompra    DateTime @map("fec_compra")
-  idCompra     Int      @id @map("id_compra")
-  sku          String
+  idDetalleCompra Int      @id(map: "pk_compra_detalle") @map("id_detalle_compra")
+  precioCompra    Decimal  @map("precio_compra") @db.Decimal
+  cantidad        Int
+  fecCompra       DateTime @map("fec_compra")
+  idCompra        Int      @map("id_compra")
+  sku             String
 
-  compraMaestro CompraMaestro @relation(fields: [idCompra], references: [idCompra])
-  articulo      Articulo      @relation(fields: [sku], references: [sku])
+  compraMaestro CompraMaestro @relation(fields: [idCompra], references: [idCompra], map: "fk_compradetalle_compramaestro")
+  articulo      Articulo      @relation(fields: [sku], references: [sku], map: "fk_compradetalle_articulo")
 
   @@map("compra_detalle")
 }
 
 model IngresoPlataforma {
   fecIngreso    DateTime @map("fec_ingreso")
-  idColaborador Int      @id @map("id_colaborador")
+  idColaborador Int      @id(map: "pk_ingreso_plataforma") @map("id_colaborador")
 
-  colaborador Colaborador @relation(fields: [idColaborador], references: [idColaborador])
+  colaborador Colaborador @relation(fields: [idColaborador], references: [idColaborador], map: "fk_ingresoplataforma_colaborador")
 
   @@map("ingreso_plataforma")
 }
@@ -264,21 +290,21 @@ model IngresoPlataforma {
 // El login (HU-01) usa esta tabla. failedAttempts/lockedUntil se agregaron
 // sobre el modelo original para soportar el bloqueo temporal de cuenta.
 model Usuario {
-  usuario        String    @unique
+  usuario        String    @unique(map: "uq_usuario_usuario")
   contrasena     String    @map("contraseña")
   vigente        Boolean   @default(true)
   fecTransac     DateTime  @default(now()) @map("fec_transac")
-  idColaborador  Int       @id @map("id_colaborador")
+  idColaborador  Int       @id(map: "pk_usuario") @map("id_colaborador")
   failedAttempts Int       @default(0) @map("failed_attempts")
   lockedUntil    DateTime? @map("locked_until")
 
-  colaborador Colaborador @relation(fields: [idColaborador], references: [idColaborador])
+  colaborador Colaborador @relation(fields: [idColaborador], references: [idColaborador], map: "fk_usuario_colaborador")
 
   @@map("usuario")
 }
 
 model Modelo {
-  idModelo    Int    @id @map("id_modelo")
+  idModelo    Int    @id(map: "pk_modelo") @map("id_modelo")
   descripcion String
 
   compatibles ModeloCompatible[]
@@ -290,9 +316,9 @@ model ModeloCompatible {
   sku      String
   idModelo Int    @map("id_modelo")
 
-  articulo Articulo @relation(fields: [sku], references: [sku])
-  modelo   Modelo   @relation(fields: [idModelo], references: [idModelo])
+  articulo Articulo @relation(fields: [sku], references: [sku], map: "fk_modelocompatible_articulo")
+  modelo   Modelo   @relation(fields: [idModelo], references: [idModelo], map: "fk_modelocompatible_modelo")
 
-  @@id([sku, idModelo])
+  @@id([sku, idModelo], map: "pk_modelo_compatible")
   @@map("modelo_compatible")
 }
