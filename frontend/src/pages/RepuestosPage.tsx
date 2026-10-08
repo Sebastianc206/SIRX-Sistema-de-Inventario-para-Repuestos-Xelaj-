@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { AppHeader } from "@/components/AppHeader";
+import { Sidebar } from "@/components/Sidebar";
 import { CargaMasivaRepuestosModal } from "@/components/CargaMasivaRepuestosModal";
 import { PaginationControls } from "@/components/PaginationControls";
 import { RepuestoFormModal } from "@/components/RepuestoFormModal";
@@ -9,16 +9,46 @@ import { listarCategorias } from "@/services/categoriaService";
 import { listarMarcas, listarModelos } from "@/services/catalogosAuxiliaresService";
 import {
   cambiarEstadoRepuesto,
+  eliminarRepuesto,
   listarRepuestos,
   RepuestoApiError,
 } from "@/services/repuestoService";
 import type { Categoria } from "@/types/categoria";
 import type { Marca, Modelo } from "@/types/catalogosAuxiliares";
 import type { FiltrosRepuestos, Paginacion, Repuesto } from "@/types/repuesto";
+import { estadoStock } from "@/utils/estadoStock";
 
 type ModalState = { modo: "crear" } | { modo: "editar"; repuesto: Repuesto } | null;
+// Un registro solo puede estar confirmando UNA acción a la vez — "estado"
+// (dar de baja/reactivar) o "eliminar" (borrado real, solo visible cuando
+// ya está inactivo) — de ahí la acción como parte de la clave, no un
+// booleano aparte por fila.
+type Confirmacion = { sku: string; accion: "estado" | "eliminar" } | null;
 
 const PAGINACION_INICIAL: Paginacion = { pagina: 1, porPagina: 20, total: 0, totalPaginas: 1 };
+
+function IconoRepuesto() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M7 4h10l2 4v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8l2-4Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path d="M5 8h14M9 12h6M9 15.5h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconoBuscar() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.8" />
+      <path d="m20 20-3.8-3.8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 export default function RepuestosPage() {
   const { usuario } = useAuth();
@@ -41,7 +71,7 @@ export default function RepuestosPage() {
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState>(null);
   const [mostrarCargaMasiva, setMostrarCargaMasiva] = useState(false);
-  const [skuAConfirmar, setSkuAConfirmar] = useState<string | null>(null);
+  const [confirmacion, setConfirmacion] = useState<Confirmacion>(null);
   const [skuEnProceso, setSkuEnProceso] = useState<string | null>(null);
 
   // Debounce simple: no dispara una petición por cada tecla, espera a que
@@ -128,15 +158,34 @@ export default function RepuestosPage() {
       setError(err instanceof RepuestoApiError ? err.message : "No se pudo cambiar el estado");
     } finally {
       setSkuEnProceso(null);
-      setSkuAConfirmar(null);
+      setConfirmacion(null);
+    }
+  }
+
+  // Eliminación real (opción adicional a la baja lógica de arriba): solo
+  // disponible para repuestos ya inactivos; el backend además rechaza con
+  // 409 si tiene historial asociado (compras/ventas/modelos compatibles),
+  // con un mensaje claro que se muestra tal cual.
+  async function handleEliminar(repuesto: Repuesto) {
+    setSkuEnProceso(repuesto.sku);
+    setError(null);
+    try {
+      await eliminarRepuesto(repuesto.sku);
+      setRepuestos((actual) => actual.filter((r) => r.sku !== repuesto.sku));
+      setMensaje(`Se eliminó el repuesto "${repuesto.nombre}".`);
+    } catch (err) {
+      setError(err instanceof RepuestoApiError ? err.message : "No se pudo eliminar el repuesto");
+    } finally {
+      setSkuEnProceso(null);
+      setConfirmacion(null);
     }
   }
 
   return (
-    <div className="dashboard-page">
-      <AppHeader />
+    <div className="app-shell">
+      <Sidebar />
 
-      <main className="admin-page">
+      <main className="admin-page admin-page--ancho">
         <Link to="/" className="admin-volver">
           ← Volver al panel
         </Link>
@@ -158,16 +207,6 @@ export default function RepuestosPage() {
         </div>
 
         <div className="admin-filtros">
-          <label>
-            Buscar
-            <input
-              type="search"
-              value={busqueda}
-              onChange={(event) => setBusqueda(event.target.value)}
-              placeholder="Buscar por SKU o nombre..."
-            />
-          </label>
-
           <label>
             Estado
             <select
@@ -253,21 +292,34 @@ export default function RepuestosPage() {
           </p>
         )}
 
-        {cargando ? (
-          <p className="admin-estado-vacio">Cargando repuestos...</p>
-        ) : repuestos.length === 0 ? (
-          <p className="admin-estado-vacio">
-            {busquedaAplicada || filtroEstado || filtroCategoria || filtroMarca || filtroModelo
-              ? "No hay repuestos que coincidan con los filtros."
-              : "Todavía no hay repuestos registrados en el catálogo."}
-          </p>
-        ) : (
-          <div className="admin-tabla-wrap">
+        <div className="admin-tabla-wrap">
+          <div className="tabla-header">
+            <h3>{paginacion.total} repuesto{paginacion.total === 1 ? "" : "s"}</h3>
+            <label className="tabla-buscador">
+              <IconoBuscar />
+              <input
+                type="search"
+                value={busqueda}
+                onChange={(event) => setBusqueda(event.target.value)}
+                placeholder="Buscar por SKU o nombre..."
+                aria-label="Buscar en el catálogo"
+              />
+            </label>
+          </div>
+
+          {cargando ? (
+            <p className="admin-estado-vacio">Cargando repuestos...</p>
+          ) : repuestos.length === 0 ? (
+            <p className="admin-estado-vacio">
+              {busquedaAplicada || filtroEstado || filtroCategoria || filtroMarca || filtroModelo
+                ? "No hay repuestos que coincidan con los filtros."
+                : "Todavía no hay repuestos registrados en el catálogo."}
+            </p>
+          ) : (
             <table className="admin-tabla">
               <thead>
                 <tr>
-                  <th>SKU</th>
-                  <th>Nombre</th>
+                  <th>Repuesto</th>
                   <th>Categoría</th>
                   <th>Marca</th>
                   <th>Precio venta</th>
@@ -280,11 +332,18 @@ export default function RepuestosPage() {
               </thead>
               <tbody>
                 {repuestos.map((fila) => {
-                  const stockBajo = fila.cantidadInventario < fila.inventarioMinimo;
+                  const stock = estadoStock(fila.cantidadInventario, fila.inventarioMinimo);
                   return (
                     <tr key={fila.sku}>
-                      <td>{fila.sku}</td>
-                      <td>{fila.nombre}</td>
+                      <td className="admin-tabla-celda-repuesto">
+                        <span className="repuesto-icono">
+                          <IconoRepuesto />
+                        </span>
+                        <span>
+                          <div>{fila.nombre}</div>
+                          <div className="modal-helper-text">{fila.sku}</div>
+                        </span>
+                      </td>
                       <td>{fila.categoria?.descripcion ?? "—"}</td>
                       <td>{fila.marca?.nombre ?? "—"}</td>
                       <td>Q{Number(fila.precioVenta).toFixed(2)}</td>
@@ -293,9 +352,8 @@ export default function RepuestosPage() {
                       )}
                       {esAdministrador && <td>{fila.proveedor?.nombre ?? "—"}</td>}
                       <td>
-                        <span className={stockBajo ? "estado-badge estado-badge--inactivo" : ""}>
-                          {fila.cantidadInventario}
-                          {stockBajo && " ⚠"}
+                        <span className={`stock-badge ${stock.clase}`}>
+                          {fila.cantidadInventario} · {stock.texto}
                         </span>
                       </td>
                       <td>
@@ -311,7 +369,7 @@ export default function RepuestosPage() {
                       </td>
                       {esAdministrador && (
                         <td className="admin-acciones">
-                          {skuAConfirmar === fila.sku ? (
+                          {confirmacion?.sku === fila.sku && confirmacion.accion === "estado" ? (
                             <>
                               <span className="modal-helper-text">
                                 {fila.estado ? "¿Dar de baja?" : "¿Reactivar?"}
@@ -327,7 +385,27 @@ export default function RepuestosPage() {
                               <button
                                 type="button"
                                 className="btn-secondary"
-                                onClick={() => setSkuAConfirmar(null)}
+                                onClick={() => setConfirmacion(null)}
+                                disabled={skuEnProceso === fila.sku}
+                              >
+                                Cancelar
+                              </button>
+                            </>
+                          ) : confirmacion?.sku === fila.sku && confirmacion.accion === "eliminar" ? (
+                            <>
+                              <span className="modal-helper-text">¿Eliminar definitivamente?</span>
+                              <button
+                                type="button"
+                                className="btn-danger"
+                                onClick={() => handleEliminar(fila)}
+                                disabled={skuEnProceso === fila.sku}
+                              >
+                                {skuEnProceso === fila.sku ? "..." : "Confirmar"}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn-secondary"
+                                onClick={() => setConfirmacion(null)}
                                 disabled={skuEnProceso === fila.sku}
                               >
                                 Cancelar
@@ -345,10 +423,19 @@ export default function RepuestosPage() {
                               <button
                                 type="button"
                                 className={fila.estado ? "btn-danger" : "btn-secondary"}
-                                onClick={() => setSkuAConfirmar(fila.sku)}
+                                onClick={() => setConfirmacion({ sku: fila.sku, accion: "estado" })}
                               >
                                 {fila.estado ? "Dar de baja" : "Activar"}
                               </button>
+                              {!fila.estado && (
+                                <button
+                                  type="button"
+                                  className="btn-danger"
+                                  onClick={() => setConfirmacion({ sku: fila.sku, accion: "eliminar" })}
+                                >
+                                  Eliminar
+                                </button>
+                              )}
                             </>
                           )}
                         </td>
@@ -358,8 +445,8 @@ export default function RepuestosPage() {
                 })}
               </tbody>
             </table>
-          </div>
-        )}
+          )}
+        </div>
 
         <PaginationControls paginacion={paginacion} onCambiarPagina={setPagina} />
       </main>

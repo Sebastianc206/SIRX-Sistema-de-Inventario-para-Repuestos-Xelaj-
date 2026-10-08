@@ -9,6 +9,7 @@ import type { Repuesto } from "@/types/repuesto";
 const {
   mockListarRepuestos,
   mockCambiarEstadoRepuesto,
+  mockEliminarRepuesto,
   mockUseAuth,
   mockListarCategorias,
   mockListarMarcas,
@@ -16,6 +17,7 @@ const {
 } = vi.hoisted(() => ({
   mockListarRepuestos: vi.fn(),
   mockCambiarEstadoRepuesto: vi.fn(),
+  mockEliminarRepuesto: vi.fn(),
   mockUseAuth: vi.fn(),
   mockListarCategorias: vi.fn().mockResolvedValue([]),
   mockListarMarcas: vi.fn().mockResolvedValue([]),
@@ -30,6 +32,7 @@ vi.mock("@/services/repuestoService", async () => {
     ...actual,
     listarRepuestos: mockListarRepuestos,
     cambiarEstadoRepuesto: mockCambiarEstadoRepuesto,
+    eliminarRepuesto: mockEliminarRepuesto,
   };
 });
 
@@ -185,6 +188,62 @@ describe("RepuestosPage", () => {
 
     expect(mockCambiarEstadoRepuesto).toHaveBeenCalledWith("FRE-001", false);
     expect(await screen.findByRole("status")).toHaveTextContent(/se dio de baja/i);
+  });
+
+  it("no muestra el botón Eliminar mientras el repuesto sigue activo", async () => {
+    comoAdministrador();
+    mockListarRepuestos.mockResolvedValueOnce({
+      articulos: [REPUESTO_ADMIN],
+      paginacion: { pagina: 1, porPagina: 20, total: 1, totalPaginas: 1 },
+    });
+
+    renderPage();
+    const fila = (await screen.findByText("Pastillas de freno")).closest("tr") as HTMLElement;
+
+    expect(within(fila).queryByRole("button", { name: /^eliminar$/i })).not.toBeInTheDocument();
+  });
+
+  it("elimina de verdad un repuesto inactivo sin historial asociado", async () => {
+    comoAdministrador();
+    mockListarRepuestos.mockResolvedValueOnce({
+      articulos: [{ ...REPUESTO_ADMIN, estado: false }],
+      paginacion: { pagina: 1, porPagina: 20, total: 1, totalPaginas: 1 },
+    });
+    mockEliminarRepuesto.mockResolvedValueOnce(undefined);
+
+    renderPage();
+    const fila = (await screen.findByText("Pastillas de freno")).closest("tr") as HTMLElement;
+
+    await userEvent.click(within(fila).getByRole("button", { name: /^eliminar$/i }));
+    expect(within(fila).getByText(/¿eliminar definitivamente\?/i)).toBeInTheDocument();
+
+    await userEvent.click(within(fila).getByRole("button", { name: /confirmar/i }));
+
+    expect(mockEliminarRepuesto).toHaveBeenCalledWith("FRE-001");
+    expect(await screen.findByText(/se eliminó el repuesto/i)).toBeInTheDocument();
+    expect(screen.queryByText("Pastillas de freno")).not.toBeInTheDocument();
+  });
+
+  it("muestra el mensaje del backend si el repuesto tiene historial asociado", async () => {
+    comoAdministrador();
+    mockListarRepuestos.mockResolvedValueOnce({
+      articulos: [{ ...REPUESTO_ADMIN, estado: false }],
+      paginacion: { pagina: 1, porPagina: 20, total: 1, totalPaginas: 1 },
+    });
+    mockEliminarRepuesto.mockRejectedValueOnce(
+      new RepuestoApiError("No se puede eliminar: tiene compras/ventas asociadas. Solo se puede desactivar.", 409),
+    );
+
+    renderPage();
+    const fila = (await screen.findByText("Pastillas de freno")).closest("tr") as HTMLElement;
+
+    await userEvent.click(within(fila).getByRole("button", { name: /^eliminar$/i }));
+    await userEvent.click(within(fila).getByRole("button", { name: /confirmar/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "No se puede eliminar: tiene compras/ventas asociadas. Solo se puede desactivar.",
+    );
+    expect(screen.getByText("Pastillas de freno")).toBeInTheDocument();
   });
 
   it("muestra un banner de error si falla la carga del listado", async () => {

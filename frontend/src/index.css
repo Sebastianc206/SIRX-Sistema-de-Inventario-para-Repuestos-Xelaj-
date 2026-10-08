@@ -1,47 +1,102 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap");
+
 :root {
-  /* --- Color: brand --- */
-  --color-primary-50: #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
+  /* --- Color: pino — paleta principal de marca (CONTEXTO_SIRX.md §8).
+     600 es la base: botones, enlaces, cabeceras, elementos activos.
+     700/800 para estados presionados y texto sobre relleno claro. --- */
+  --pino-100: #e9f0ec;
+  --pino-200: #c5dcd2;
+  --pino-300: #9ec1b4;
+  --pino-400: #6da391;
+  --pino-500: #40806b;
+  --pino-600: #2e5b4a;
+  --pino-700: #24493b;
+  --pino-800: #1b372c;
+  --pino-900: #12241d;
 
-  /* --- Color: neutral --- */
-  --color-neutral-0: #ffffff;
-  --color-neutral-50: #f8fafc;
-  --color-neutral-100: #f1f5f9;
-  --color-neutral-200: #e2e8f0;
-  --color-neutral-300: #cbd5e1;
-  --color-neutral-500: #64748b;
-  --color-neutral-600: #475569;
-  --color-neutral-700: #334155;
-  --color-neutral-900: #0f172a;
+  /* Alias semánticos usados en todo el resto de la hoja de estilos: cada
+     pantalla ya referencia las variables --color-primary y --color-neutral,
+     así que remapear estos alias a la paleta pino/neutro cálido basta para
+     propagar el sistema de diseño sin tocar cada componente. */
+  --color-primary-50: var(--pino-100);
+  --color-primary-100: var(--pino-200);
+  --color-primary-500: var(--pino-500);
+  --color-primary-600: var(--pino-600);
+  --color-primary-700: var(--pino-700);
 
-  /* --- Color: semantic (bg / fg / border per state) --- */
-  --color-error-bg: #fef2f2;
-  --color-error-fg: #b91c1c;
-  --color-error-border: #fecaca;
-  --color-warning-bg: #fffbeb;
-  --color-warning-fg: #92400e;
-  --color-warning-border: #fde68a;
-  --color-info-bg: #eff6ff;
-  --color-info-fg: #1d4ed8;
-  --color-info-border: #bfdbfe;
-  --color-success-bg: #ecfdf5;
-  --color-success-fg: #065f46;
-  --color-success-border: #a7f3d0;
+  /* --- Color: neutros cálidos — papel y tinta, nunca blanco/negro puro --- */
+  --neutro-superficie: #fcfbf7;
+  --neutro-papel: #f7f6f2;
+  --neutro-200: #edebe4;
+  --neutro-300-borde: #d8d5cc;
+  --neutro-400: #b4b0a6;
+  --neutro-500: #8a8680;
+  --neutro-600-texto-tenue: #625f29;
+  --neutro-700: #46443f;
+  --tinta-900: #1e1d1a;
 
-  /* --- Typography (base 16px, ~1.25 ratio) --- */
+  --color-neutral-0: var(--neutro-superficie);
+  --color-neutral-50: var(--neutro-papel);
+  --color-neutral-100: var(--neutro-200);
+  --color-neutral-200: var(--neutro-200);
+  --color-neutral-300: var(--neutro-300-borde);
+  --color-neutral-400: var(--neutro-400);
+  --color-neutral-500: var(--neutro-500);
+  --color-neutral-600: var(--neutro-600-texto-tenue);
+  --color-neutral-700: var(--neutro-700);
+  --color-neutral-900: var(--tinta-900);
+
+  /* --- Estados de stock (CONTEXTO_SIRX.md §8): relleno claro + tinta
+     oscura para texto encima — nunca el tono medio como texto pequeño. --- */
+  --stock-en-stock-bg: #e9f0ec;
+  --stock-en-stock-mid: #40806b;
+  --stock-en-stock-text: #24493b;
+
+  --stock-bajo-bg: #f5e9ce;
+  --stock-bajo-mid: #c08a2e;
+  --stock-bajo-text: #6e4b0e;
+
+  --stock-agotado-bg: #f5e2de;
+  --stock-agotado-mid: #a8402f;
+  --stock-agotado-text: #7e2e20;
+
+  --stock-transito-bg: #dceaf1;
+  --stock-transito-mid: #2f6d8f;
+  --stock-transito-text: #1f4b66;
+
+  /* --- Color: semántico (bg / fg / border) — reutiliza la escala de
+     estados de stock en vez de mantener una paleta roja/ámbar/azul
+     aparte para las mismas cuatro situaciones (éxito/alerta/error/info). --- */
+  --color-error-bg: var(--stock-agotado-bg);
+  --color-error-fg: var(--stock-agotado-text);
+  --color-error-border: var(--stock-agotado-mid);
+  --color-warning-bg: var(--stock-bajo-bg);
+  --color-warning-fg: var(--stock-bajo-text);
+  --color-warning-border: var(--stock-bajo-mid);
+  --color-info-bg: var(--stock-transito-bg);
+  --color-info-fg: var(--stock-transito-text);
+  --color-info-border: var(--stock-transito-mid);
+  --color-success-bg: var(--stock-en-stock-bg);
+  --color-success-fg: var(--stock-en-stock-text);
+  --color-success-border: var(--stock-en-stock-mid);
+
+  /* --- Typography ---
+     Space Grotesk para headings/marca (carácter técnico, a tono con un
+     inventario de repuestos); Inter para texto de UI y tablas densas,
+     donde la legibilidad en tamaños pequeños importa más. */
   --font-sans:
-    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Space Grotesk", var(--font-sans);
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;
   --text-lg: 1.25rem;
   --text-xl: 1.5rem;
+  --text-2xl: 1.875rem;
   --font-normal: 400;
   --font-medium: 500;
   --font-semibold: 600;
+  --font-bold: 700;
   --leading-tight: 1.2;
   --leading-normal: 1.5;
 
@@ -58,8 +113,8 @@
   --radius-md: 10px;
   --radius-lg: 16px;
   --shadow-card:
-    0 4px 16px rgba(15, 23, 42, 0.08),
-    0 1px 2px rgba(15, 23, 42, 0.06);
+    0 4px 16px rgba(18, 36, 29, 0.08),
+    0 1px 2px rgba(18, 36, 29, 0.06);
 
   font-family: var(--font-sans);
   color: var(--color-neutral-900);
@@ -73,6 +128,25 @@ body {
   margin: 0;
   font-size: var(--text-base);
   line-height: var(--leading-normal);
+  background: var(--neutro-papel);
+}
+
+/* Jerarquía tipográfica: los headings usan la display para separarse
+   claramente del texto de UI/etiquetas, que se queda en --font-sans. */
+h1,
+h2,
+h3,
+.sidebar-brand-name {
+  font-family: var(--font-display);
+  font-weight: var(--font-semibold);
+  color: var(--color-neutral-900);
+  letter-spacing: -0.01em;
+}
+
+label,
+.admin-tabla th {
+  font-family: var(--font-sans);
+  font-weight: var(--font-medium);
 }
 
 /* ---------- Login page ---------- */
@@ -233,67 +307,173 @@ body {
   border-color: var(--color-info-border);
 }
 
-/* ---------- Dashboard placeholder ---------- */
+/* ---------- App shell + sidebar navigation ---------- */
 
-.dashboard-page {
+.app-shell {
+  display: flex;
+  align-items: stretch;
   min-height: 100vh;
   background: var(--color-neutral-50);
 }
 
-.dashboard-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-md);
-  padding: var(--space-md) var(--space-xl);
-  background: var(--color-neutral-0);
-  border-bottom: 1px solid var(--color-neutral-200);
+.app-shell > main,
+.app-shell > .dashboard-content {
+  flex: 1;
+  min-width: 0;
 }
 
-.dashboard-header .login-brand-mark {
-  width: 32px;
-  height: 32px;
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 248px;
+  padding: var(--space-lg) var(--space-md);
+  background: var(--pino-800);
+  color: var(--pino-100);
+  /* Barra de alto completo pegada a los bordes izquierdo/superior/inferior
+     del viewport: redondear esas esquinas se vería cortado por el propio
+     borde de la pantalla. Solo se suaviza el borde interior (el que da
+     contra el contenido), como un remate suave en vez de un corte recto. */
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+  box-shadow: 2px 0 12px rgba(18, 36, 29, 0.12);
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0 var(--space-sm) var(--space-lg);
+}
+
+.sidebar-brand-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background: var(--pino-500);
+  color: var(--pino-900);
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+}
+
+.sidebar-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: var(--leading-tight);
+}
+
+.sidebar-brand-name {
+  font-size: var(--text-lg);
+  color: var(--neutro-superficie);
+}
+
+.sidebar-brand-tag {
   font-size: var(--text-xs);
+  color: var(--pino-300);
 }
 
-.dashboard-user {
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  flex: 1;
+}
+
+.sidebar-nav-grupo {
+  margin: var(--space-md) var(--space-sm) var(--space-xs);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--pino-400);
+}
+
+.sidebar-link {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
+  gap: var(--space-sm);
+  padding: 0.55rem var(--space-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--pino-200);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.dashboard-user-info {
-  text-align: right;
+.sidebar-link svg {
+  flex-shrink: 0;
+  opacity: 0.85;
 }
 
-.dashboard-user-info p {
+.sidebar-link:hover {
+  background: var(--pino-700);
+  color: var(--neutro-superficie);
+}
+
+.sidebar-link--activo {
+  background: var(--pino-600);
+  color: var(--neutro-superficie);
+  position: relative;
+}
+
+.sidebar-link--activo::before {
+  content: "";
+  position: absolute;
+  left: -0.5rem;
+  top: 0.35rem;
+  bottom: 0.35rem;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--pino-300);
+}
+
+.sidebar-link--activo svg {
+  opacity: 1;
+}
+
+.sidebar-user {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding-top: var(--space-md);
+  margin-top: var(--space-md);
+  border-top: 1px solid var(--pino-700);
+}
+
+.sidebar-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0 var(--space-sm);
+}
+
+.sidebar-user-name {
   margin: 0;
   font-size: var(--text-sm);
-}
-
-.dashboard-user-info .dashboard-user-name {
   font-weight: var(--font-medium);
-  color: var(--color-neutral-900);
+  color: var(--neutro-superficie);
 }
 
-.dashboard-header button {
-  padding: var(--space-xs) var(--space-md);
+.sidebar-logout {
+  padding: 0.5rem var(--space-sm);
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
   font-family: inherit;
-  color: var(--color-neutral-700);
-  background: var(--color-neutral-0);
-  border: 1px solid var(--color-neutral-300);
+  color: var(--pino-100);
+  background: transparent;
+  border: 1px solid var(--pino-600);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease;
+  text-align: left;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
-.dashboard-header button:hover {
-  background: var(--color-neutral-100);
-  border-color: var(--color-neutral-500);
+.sidebar-logout:hover {
+  background: var(--pino-700);
+  border-color: var(--pino-500);
 }
 
 .dashboard-content {
@@ -302,31 +482,12 @@ body {
 
 .dashboard-content h2 {
   margin: 0 0 var(--space-xs);
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  color: var(--color-neutral-900);
+  font-size: var(--text-2xl);
 }
 
 .dashboard-content p {
   margin: 0;
   color: var(--color-neutral-500);
-}
-
-.dashboard-nav {
-  display: flex;
-  align-items: center;
-  gap: var(--space-lg);
-}
-
-.dashboard-nav a {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--color-primary-700);
-  text-decoration: none;
-}
-
-.dashboard-nav a:hover {
-  text-decoration: underline;
 }
 
 /* ---------- Generic feedback banners (shared across admin screens) ---------- */
@@ -369,6 +530,15 @@ body {
   max-width: 960px;
   margin: 0 auto;
   padding: var(--space-xl);
+}
+
+/* Variante para páginas con tablas anchas (ej. RepuestosPage: ícono+nombre,
+   categoría, marca, dos precios, proveedor, stock, estado, acciones) — el
+   960px fijo de .admin-page las obliga a scroll horizontal en escritorio
+   aunque sobre espacio a los lados. No se toca el valor por defecto para no
+   afectar páginas angostas (formularios, listados simples). */
+.admin-page--ancho {
+  max-width: 1400px;
 }
 
 .admin-volver {
@@ -439,8 +609,14 @@ body {
   color: var(--color-neutral-700);
 }
 
+/* :not([type="checkbox"]) — sin esto, estas reglas (pensadas para el
+   <input type="date"> de Desde/Hasta) también alcanzaban los checkboxes de
+   ProductoMultiSelect (viven dentro de un <label> de .admin-filtros): el
+   checkbox terminaba estirado a min-width:220px, empujando su texto fuera
+   del panel angosto y forzando scroll horizontal que lo recortaba — no era
+   un problema de flex-direction, ese ya estaba bien aplicado. */
 .admin-filtros select,
-.admin-filtros input {
+.admin-filtros input:not([type="checkbox"]) {
   padding: 0.5rem var(--space-sm);
   font-size: var(--text-sm);
   font-family: inherit;
@@ -450,11 +626,11 @@ body {
   border-radius: var(--radius-sm);
 }
 
-.admin-filtros input {
+.admin-filtros input:not([type="checkbox"]) {
   min-width: 220px;
 }
 
-.admin-filtros input:focus-visible,
+.admin-filtros input:not([type="checkbox"]):focus-visible,
 .admin-filtros select:focus-visible {
   outline: none;
   border-color: var(--color-primary-500);
@@ -483,24 +659,45 @@ body {
   font-size: var(--text-sm);
 }
 
+/* Antes forzaba white-space:nowrap en toda celda — con las 9 columnas de
+   RepuestosPage (Administrador: ícono+nombre, categoría, marca, 2 precios,
+   proveedor, stock, estado, acciones) eso obligaba a scroll horizontal
+   incluso con .admin-page--ancho. El wrap por defecto (normal) deja que
+   categoría/marca/proveedor/nombre partan línea si hace falta; columnas
+   que sí conviene mantener en una sola línea (precios, badges) llevan su
+   propio white-space: nowrap ya sea inline o en su propia clase. */
 .admin-tabla th,
 .admin-tabla td {
   padding: var(--space-sm) var(--space-md);
   text-align: left;
   border-bottom: 1px solid var(--color-neutral-200);
-  white-space: nowrap;
 }
 
 .admin-tabla th {
-  font-weight: var(--font-medium);
-  color: var(--color-neutral-500);
-  text-transform: uppercase;
+  font-weight: var(--font-semibold);
+  color: var(--color-neutral-600);
   font-size: var(--text-xs);
-  letter-spacing: 0.05em;
+  border-bottom: 2px solid var(--color-neutral-300);
 }
 
 .admin-tabla tbody tr:hover {
   background: var(--color-neutral-50);
+}
+
+/* Movimiento anulado (MovimientosPage): sigue apareciendo en la lista (baja
+   lógica, nunca se borra) pero con un tratamiento rojizo sutil para que se
+   distinga de un vistazo de los movimientos activos. */
+.admin-tabla tbody tr.admin-tabla-fila-anulada {
+  background: var(--color-error-bg);
+}
+
+.admin-tabla tbody tr.admin-tabla-fila-anulada:hover {
+  background: var(--color-error-bg);
+  filter: brightness(0.97);
+}
+
+.admin-tabla-fila-anulada td {
+  color: var(--color-error-fg);
 }
 
 .admin-tabla tbody tr:last-child td {
@@ -579,6 +776,30 @@ body {
 
 .btn-danger:hover:not(:disabled) {
   background: #991b1b !important;
+}
+
+/* Botón primario reutilizable fuera de .admin-toolbar/.modal-actions (ej.
+   el submit de un form-card que no vive dentro de esos contenedores). */
+.btn-primario {
+  padding: 0.6rem var(--space-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  font-family: inherit;
+  color: var(--color-neutral-0);
+  background: var(--color-primary-600);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.btn-primario:hover:not(:disabled) {
+  background: var(--color-primary-700);
+}
+
+.btn-primario:disabled {
+  background: var(--color-neutral-300);
+  cursor: not-allowed;
 }
 
 /* ---------- Modal (crear/editar usuario) ---------- */
@@ -722,6 +943,769 @@ body {
 }
 
 .pagination-info {
+  font-size: var(--text-sm);
+  color: var(--color-neutral-500);
+}
+
+.pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem var(--space-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  font-family: inherit;
+  color: var(--pino-700);
+  background: var(--color-neutral-0);
+  border: 1px solid var(--pino-300);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.pagination-btn svg {
+  flex-shrink: 0;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: var(--pino-100);
+  border-color: var(--pino-500);
+}
+
+.pagination-btn:disabled {
+  color: var(--color-neutral-400);
+  background: var(--color-neutral-50);
+  border-color: var(--color-neutral-200);
+  cursor: not-allowed;
+}
+
+.pagination-numeros {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pagination-numero {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  padding: 0.35rem 0.5rem;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  font-family: inherit;
+  color: var(--pino-700);
+  background: var(--color-neutral-0);
+  border: 1px solid var(--pino-300);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.pagination-numero:hover {
+  background: var(--pino-100);
+  border-color: var(--pino-500);
+}
+
+.pagination-numero-activo,
+.pagination-numero-activo:hover {
+  color: var(--color-neutral-0);
+  background: var(--pino-600);
+  border-color: var(--pino-600);
+}
+
+.pagination-elipsis {
+  padding: 0 0.25rem;
+  color: var(--color-neutral-400);
+}
+
+/* ---------- Estado de stock (badge, mapeo CONTEXTO_SIRX.md §8) ---------- */
+
+.stock-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem var(--space-sm);
+  border-radius: 999px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  white-space: nowrap;
+}
+
+.stock-badge--en-stock {
+  color: var(--stock-en-stock-text);
+  background: var(--stock-en-stock-bg);
+}
+
+.stock-badge--bajo {
+  color: var(--stock-bajo-text);
+  background: var(--stock-bajo-bg);
+}
+
+.stock-badge--agotado {
+  color: var(--stock-agotado-text);
+  background: var(--stock-agotado-bg);
+}
+
+/* Reutilizado por MovimientosPage para distinguir "venta" de "compra" en el
+   historial — no es un estado de stock, pero comparte la misma forma visual. */
+.stock-badge--transito {
+  color: var(--stock-transito-text);
+  background: var(--stock-transito-bg);
+}
+
+/* ---------- Chips de filtro (historial de movimientos por categoría) ---------- */
+
+.chips-filtro {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.chip-filtro {
+  padding: 0.35rem var(--space-md);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  font-family: inherit;
+  color: var(--color-neutral-700);
+  background: var(--color-neutral-0);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.chip-filtro:hover {
+  background: var(--color-neutral-50);
+}
+
+.chip-filtro--activo {
+  color: var(--color-neutral-0);
+  background: var(--color-primary-600);
+  border-color: var(--color-primary-600);
+}
+
+/* ---------- Catálogo de repuestos: ícono por fila + buscador de tabla ---------- */
+
+.repuesto-icono {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background: var(--pino-100);
+  color: var(--pino-700);
+}
+
+.admin-tabla td.admin-tabla-celda-repuesto {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.tabla-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-neutral-50);
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+.tabla-header h3 {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-neutral-700);
+}
+
+.tabla-buscador {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  max-width: 280px;
+  padding: 0.4rem var(--space-sm);
+  background: var(--color-neutral-0);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--radius-sm);
+}
+
+.tabla-buscador svg {
+  flex-shrink: 0;
+  color: var(--color-neutral-500);
+}
+
+.tabla-buscador input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  font-size: var(--text-sm);
+  font-family: inherit;
+  color: var(--color-neutral-900);
+  background: transparent;
+  border: none;
+}
+
+.tabla-buscador input:focus-visible {
+  outline: none;
+}
+
+.tabla-buscador:focus-within {
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 3px var(--color-primary-100);
+}
+
+/* ---------- Bloque de stock desglosado (detalle/edición de repuesto) ---------- */
+
+.repuesto-stock-block {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  margin-bottom: var(--space-xs);
+  background: var(--color-neutral-50);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-md);
+}
+
+.repuesto-stock-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.repuesto-stock-label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--color-neutral-500);
+}
+
+.repuesto-stock-valor {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--color-neutral-900);
+}
+
+.repuesto-stock-item .stock-badge {
+  align-self: flex-start;
+  margin-top: 0.1rem;
+}
+
+/* ---------- Formularios de líneas (compras/ventas/ajustes) ---------- */
+
+.form-card {
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
+  background: var(--color-neutral-0);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.form-card h3 {
+  margin: 0 0 var(--space-md);
+  font-size: var(--text-lg);
+}
+
+.form-fila-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.form-fila-cabecera .login-field {
+  min-width: 220px;
+  flex: 1;
+}
+
+/* Estilo genérico de select/input dentro de .login-field fuera de
+   .login-page/.modal-card (ej. ProveedorRequeridoSelect en
+   ComprasPage/.form-fila-cabecera) — sin esto, cualquier select nuevo que
+   viva en ese contexto se queda con el estilo default del navegador. */
+.login-field select,
+.login-field input {
+  padding: 0.625rem var(--space-sm);
+  font-size: var(--text-base);
+  font-family: inherit;
+  color: var(--color-neutral-900);
+  background: var(--color-neutral-0);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--radius-sm);
+}
+
+.login-field select:focus-visible,
+.login-field input:focus-visible {
+  outline: none;
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 3px var(--color-primary-100);
+}
+
+.login-field select:disabled {
+  color: var(--color-neutral-500);
+  background: var(--color-neutral-50);
+  cursor: not-allowed;
+}
+
+.lineas-tabla-wrap {
+  overflow-x: auto;
+  margin-bottom: var(--space-sm);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-sm);
+}
+
+.lineas-tabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.lineas-tabla thead th:first-child,
+.lineas-tabla tbody td:first-child {
+  padding-left: var(--space-sm);
+}
+
+.lineas-tabla thead th:last-child,
+.lineas-tabla tbody td:last-child {
+  padding-right: var(--space-sm);
+}
+
+.lineas-tabla th {
+  padding: var(--space-xs) var(--space-sm);
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-neutral-600);
+  border-bottom: 2px solid var(--color-neutral-300);
+}
+
+.lineas-tabla td {
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: 1px solid var(--color-neutral-200);
+  /* Sin esto, el default del navegador (vertical-align: middle en <td>)
+     centra cada celda por separado — cuando la celda de Repuesto crece por
+     el texto "Marca: X" debajo del combobox, las demás celdas (Cantidad,
+     Precio, Subtotal) quedan flotando a media altura en vez de alineadas
+     con el combobox. */
+  vertical-align: top;
+}
+
+.lineas-tabla select,
+.lineas-tabla input {
+  width: 100%;
+  min-width: 120px;
+  padding: 0.4rem var(--space-sm);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  color: var(--color-neutral-900);
+  background: var(--color-neutral-0);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--radius-sm);
+}
+
+.lineas-tabla-subtotal {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Base para el botón "Quitar/Eliminar" de cada línea — .btn-danger/
+   .btn-secondary solo aportan color (pensadas para combinarse con un
+   contenedor como .admin-acciones button, que acá no existe). */
+.lineas-tabla button {
+  padding: 0.375rem var(--space-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  font-family: inherit;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.lineas-tabla button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.lineas-acciones {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-top: var(--space-sm);
+}
+
+.lineas-total {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  font-family: var(--font-display);
+}
+
+/* Acción propia de "+ Agregar línea": relleno pino claro con texto/ícono
+   en el tono de marca — más peso que un botón secundario genérico, pero
+   sin competir con el botón primario de envío del formulario. */
+.btn-agregar-linea {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem var(--space-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  font-family: inherit;
+  color: var(--pino-700);
+  background: var(--pino-100);
+  border: 1px solid var(--pino-200);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-agregar-linea svg {
+  flex-shrink: 0;
+}
+
+.btn-agregar-linea:hover:not(:disabled) {
+  background: var(--pino-200);
+  border-color: var(--pino-300);
+}
+
+.btn-agregar-linea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ---------- Tablero (dashboard HU-15) ---------- */
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-md);
+  margin: var(--space-lg) 0;
+}
+
+.kpi-card {
+  padding: var(--space-lg);
+  background: var(--color-neutral-0);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.kpi-card-label {
+  margin: 0 0 var(--space-xs);
+  font-size: var(--text-sm);
+  color: var(--color-neutral-600);
+}
+
+.kpi-card-valor {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-semibold);
+  color: var(--color-neutral-900);
+}
+
+.kpi-card--alerta .kpi-card-valor {
+  color: var(--stock-bajo-text);
+}
+
+/* ---------- Comparación de ventas entre productos (MovimientosPage) ---------- */
+
+.comparacion-layout {
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .comparacion-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.comparacion-checklist-swatch {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.comparacion-grafica svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.comparacion-grafica-grid {
+  stroke: var(--color-neutral-200);
+  stroke-width: 1;
+}
+
+.comparacion-grafica-eje-linea {
+  stroke: var(--color-neutral-300);
+  stroke-width: 1;
+}
+
+.comparacion-grafica-eje {
+  font-size: 10px;
+  fill: var(--color-neutral-500);
+}
+
+.comparacion-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin: var(--space-md) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.comparacion-leyenda-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  font-family: inherit;
+  color: var(--color-neutral-700);
+  background: var(--color-neutral-0);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.comparacion-leyenda-item--activa {
+  border-color: var(--color-primary-500);
+  background: var(--color-primary-50);
+  color: var(--color-primary-700);
+}
+
+.comparacion-leyenda-swatch {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.comparacion-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.comparacion-panel-titulo {
+  margin: 0 0 var(--space-xs);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-neutral-500);
+}
+
+.comparacion-panel-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: var(--space-sm);
+  background: var(--color-neutral-50);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+}
+
+.comparacion-panel-item--activa {
+  background: var(--pino-100);
+  border-color: var(--pino-300);
+}
+
+.comparacion-panel-item-nombre {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--color-neutral-700);
+}
+
+.comparacion-panel-item-total {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-neutral-900);
+}
+
+/* ---------- Dropdown de selección múltiple de producto (MovimientosPage) ---------- */
+
+.producto-dropdown {
+  position: relative;
+}
+
+.producto-dropdown-boton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: 0.4rem var(--space-sm);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  color: var(--color-neutral-900);
+  background: var(--color-neutral-0);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.producto-dropdown-boton:hover {
+  border-color: var(--pino-500);
+}
+
+.producto-dropdown-panel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: max(100%, 260px);
+  max-height: 320px;
+  overflow-y: auto;
+  padding: var(--space-sm);
+  background: var(--color-neutral-0);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+/* .admin-filtros label (flex-direction: column) tiene (0,1,1) de
+   especificidad y le gana a .producto-dropdown-item sola (0,1,0), así que
+   el checkbox terminaba apilado arriba del texto en vez de a la izquierda
+   — de ahí el selector compuesto acá, que sube la especificidad a (0,2,1). */
+.producto-dropdown-panel .producto-dropdown-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0.35rem var(--space-xs);
+  font-size: var(--text-sm);
+  color: var(--color-neutral-900);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+/* El checkbox no debe estirarse ni encogerse — de lo contrario roba el
+   ancho que necesita el texto para no cortarse. */
+.producto-dropdown-item input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  min-width: 0;
+}
+
+/* El texto sí necesita poder partir línea con nombres largos de producto —
+   sin esto es lo que desbordaba el panel angosto y disparaba el scroll
+   horizontal que lo recortaba. */
+.producto-dropdown-item {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.producto-dropdown-item:hover {
+  background: var(--color-neutral-50);
+}
+
+.producto-dropdown-item--todas {
+  border-bottom: 1px solid var(--color-neutral-200);
+  margin-bottom: 0.15rem;
+  padding-bottom: 0.5rem;
+  font-weight: var(--font-medium);
+}
+
+.producto-dropdown-limite {
+  margin: 0 0 var(--space-xs);
+}
+
+/* ---------- Combobox de búsqueda de repuesto (compras/ventas/ajustes/movimientos) ---------- */
+
+.combobox {
+  position: relative;
+  width: 100%;
+}
+
+.combobox-input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.4rem var(--space-sm);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  color: var(--color-neutral-900);
+  background: var(--color-neutral-0);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.combobox-input::placeholder {
+  color: var(--color-neutral-500);
+}
+
+.combobox-input:focus-visible {
+  outline: none;
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 3px var(--color-primary-100);
+}
+
+.combobox-input:disabled {
+  color: var(--color-neutral-500);
+  background: var(--color-neutral-50);
+  cursor: not-allowed;
+}
+
+/* position/top/left/width los fija RepuestoSkuSelect.tsx inline (con
+   coordenadas reales del input) porque la lista se monta en un portal a
+   document.body — position:fixed es lo que le permite flotar por encima
+   del overflow:auto de .lineas-tabla-wrap en vez de quedar recortada. */
+.combobox-lista {
+  z-index: 20;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 0;
+  padding: var(--space-xs) 0;
+  list-style: none;
+  background: var(--color-neutral-0);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+}
+
+.combobox-opcion {
+  padding: 0.45rem var(--space-sm);
+  font-size: var(--text-sm);
+  color: var(--color-neutral-900);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.combobox-opcion--activa {
+  background: var(--pino-100);
+  color: var(--pino-800);
+}
+
+.combobox-opcion-sku {
+  color: var(--color-neutral-500);
+  font-size: var(--text-xs);
+}
+
+.combobox-mensaje {
+  padding: 0.5rem var(--space-sm);
   font-size: var(--text-sm);
   color: var(--color-neutral-500);
 }

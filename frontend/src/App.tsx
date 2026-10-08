@@ -7,6 +7,10 @@ import UsuariosPage from "@/pages/UsuariosPage";
 import CategoriasPage from "@/pages/CategoriasPage";
 import RepuestosPage from "@/pages/RepuestosPage";
 import ProveedoresPage from "@/pages/ProveedoresPage";
+import ComprasPage from "@/pages/ComprasPage";
+import VentasPage from "@/pages/VentasPage";
+import AjustesPage from "@/pages/AjustesPage";
+import MovimientosPage from "@/pages/MovimientosPage";
 
 function App() {
   return (
@@ -57,6 +61,46 @@ function App() {
             element={
               <ProtectedRoute roles={["Administrador"]}>
                 <ProveedoresPage />
+              </ProtectedRoute>
+            }
+          />
+          {/* HU-08: registrar compras involucra precioCompra (dato de
+              costo) — exclusivo de Administrador, igual que Proveedores. */}
+          <Route
+            path="/compras"
+            element={
+              <ProtectedRoute roles={["Administrador"]}>
+                <ComprasPage />
+              </ProtectedRoute>
+            }
+          />
+          {/* HU-13/14: venta de mostrador es tarea de Operador
+              (CLAUDE.md) — abierto a cualquier rol autenticado. */}
+          <Route
+            path="/ventas"
+            element={
+              <ProtectedRoute>
+                <VentasPage />
+              </ProtectedRoute>
+            }
+          />
+          {/* HU-09: ajustes/mermas son una tarea operativa de bodega, sin
+              datos de costo — abierto a cualquier rol autenticado. */}
+          <Route
+            path="/ajustes"
+            element={
+              <ProtectedRoute>
+                <AjustesPage />
+              </ProtectedRoute>
+            }
+          />
+          {/* HU-10: historial de movimientos + comparación de ventas —
+              exclusivo de Administrador (visión de auditoría/reportes). */}
+          <Route
+            path="/movimientos"
+            element={
+              <ProtectedRoute roles={["Administrador"]}>
+                <MovimientosPage />
               </ProtectedRoute>
             }
           />

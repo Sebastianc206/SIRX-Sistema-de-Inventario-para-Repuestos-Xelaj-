@@ -92,6 +92,13 @@ function esEnteroNoNegativo(valor) {
   return esNumeroFinito(valor) && Number.isInteger(Number(valor)) && Number(valor) >= 0;
 }
 
+// HU-08/09/13: cantidades de línea de compra/salida — a diferencia de
+// inventarioMinimo (que sí puede ser 0), una línea de movimiento con
+// cantidad 0 no tiene sentido y hay que rechazarla explícitamente.
+function esEnteroPositivo(valor) {
+  return esNumeroFinito(valor) && Number.isInteger(Number(valor)) && Number(valor) > 0;
+}
+
 // SKU: código de producto sin espacios, para que sea seguro usarlo tal cual
 // en una URL (GET/PUT /api/repuestos/:sku).
 const SKU_REGEX = /^[A-Za-z0-9._-]+$/;
@@ -113,5 +120,6 @@ module.exports = {
   esNumeroFinito,
   esNumeroPositivo,
   esEnteroNoNegativo,
+  esEnteroPositivo,
   esSkuValido,
 };

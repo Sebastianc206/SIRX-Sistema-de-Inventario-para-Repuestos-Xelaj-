@@ -6,6 +6,7 @@ const {
   editarArticulo,
   cambiarEstadoArticulo,
   crearArticulosEnLote,
+  eliminarArticulo,
 } = require("../services/articuloService");
 const { generarPlantillaRepuestos, extraerFilasDeExcel } = require("../utils/excelRepuestos");
 
@@ -138,6 +139,15 @@ async function cargaMasivaController(req, res) {
   return res.json(resultado);
 }
 
+async function eliminarController(req, res) {
+  try {
+    await eliminarArticulo(req.params.sku);
+    return res.status(204).send();
+  } catch (error) {
+    return manejarError(res, error);
+  }
+}
+
 module.exports = {
   listarController,
   obtenerController,
@@ -146,4 +156,5 @@ module.exports = {
   cambiarEstadoController,
   descargarPlantillaController,
   cargaMasivaController,
+  eliminarController,
 };

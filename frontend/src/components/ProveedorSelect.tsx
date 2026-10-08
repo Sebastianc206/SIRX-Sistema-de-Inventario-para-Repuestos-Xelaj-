@@ -20,7 +20,7 @@ export function ProveedorSelect({ value, onChange, disabled }: ProveedorSelectPr
 
   useEffect(() => {
     let cancelado = false;
-    listarProveedores()
+    listarProveedores({ vigente: true })
       .then((datos) => {
         if (!cancelado) setProveedores(datos);
       })

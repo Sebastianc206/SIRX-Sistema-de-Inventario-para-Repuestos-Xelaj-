@@ -5,6 +5,7 @@ const mockArticuloService = {
   editarArticulo: jest.fn(),
   cambiarEstadoArticulo: jest.fn(),
   crearArticulosEnLote: jest.fn(),
+  eliminarArticulo: jest.fn(),
 };
 
 jest.mock("../services/articuloService", () => ({
@@ -249,6 +250,40 @@ describe("Rutas /api/repuestos", () => {
 
       expect(respuesta.status).toBe(200);
       expect(mockArticuloService.cambiarEstadoArticulo).toHaveBeenCalledWith("FRE-001", false);
+    });
+  });
+
+  describe("DELETE /api/repuestos/:sku", () => {
+    it("rechaza a Operador con 403", async () => {
+      const respuesta = await request(app)
+        .delete("/api/repuestos/FRE-001")
+        .set("Authorization", `Bearer ${token("Operador")}`);
+
+      expect(respuesta.status).toBe(403);
+      expect(mockArticuloService.eliminarArticulo).not.toHaveBeenCalled();
+    });
+
+    it("elimina el repuesto y responde 204 cuando Administrador lo solicita", async () => {
+      mockArticuloService.eliminarArticulo.mockResolvedValueOnce(undefined);
+
+      const respuesta = await request(app)
+        .delete("/api/repuestos/FRE-001")
+        .set("Authorization", `Bearer ${token("Administrador")}`);
+
+      expect(respuesta.status).toBe(204);
+      expect(mockArticuloService.eliminarArticulo).toHaveBeenCalledWith("FRE-001");
+    });
+
+    it("traduce a 409 el ArticuloError si tiene historial asociado", async () => {
+      mockArticuloService.eliminarArticulo.mockRejectedValueOnce(
+        new ArticuloError("No se puede eliminar: tiene compras/ventas asociadas. Solo se puede desactivar.", 409),
+      );
+
+      const respuesta = await request(app)
+        .delete("/api/repuestos/FRE-001")
+        .set("Authorization", `Bearer ${token("Administrador")}`);
+
+      expect(respuesta.status).toBe(409);
     });
   });
 
