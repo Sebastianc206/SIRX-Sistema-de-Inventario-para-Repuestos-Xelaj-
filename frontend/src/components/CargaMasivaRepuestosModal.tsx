@@ -1,5 +1,9 @@
 import { useId, useState } from "react";
 import type { FormEvent } from "react";
+import { Alert } from "@/components/ui/Alert";
+import { Button } from "@/components/ui/Button";
+import { DialogBody, DialogFooter, Modal } from "@/components/ui/Dialog";
+import { useDialogControl } from "@/components/ui/dialogContext";
 import {
   cargarRepuestosMasivo,
   descargarPlantillaRepuestos,
@@ -16,7 +20,6 @@ interface CargaMasivaRepuestosModalProps {
 }
 
 export function CargaMasivaRepuestosModal({ onClose, onCargaCompleta }: CargaMasivaRepuestosModalProps) {
-  const tituloId = useId();
   const archivoId = useId();
 
   const [archivo, setArchivo] = useState<File | null>(null);
@@ -56,99 +59,89 @@ export function CargaMasivaRepuestosModal({ onClose, onCargaCompleta }: CargaMas
   }
 
   return (
-    <div className="modal-overlay" role="presentation" onClick={onClose}>
-      <div
-        className="modal-card"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={tituloId}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2 id={tituloId}>Carga masiva de repuestos</h2>
-
-        {resultado ? (
-          <div>
-            <p className="banner banner--success" role="status">
+    <Modal title="Carga masiva de repuestos" size="lg" dirty={archivo !== null && !resultado && !enviando} onClose={onClose}>
+      {resultado ? (
+        <>
+          <DialogBody>
+            <Alert tone="success">
               {resultado.creadas.length} repuesto{resultado.creadas.length === 1 ? "" : "s"} creado
               {resultado.creadas.length === 1 ? "" : "s"} correctamente.
-            </p>
+            </Alert>
 
             {resultado.errores.length > 0 && (
               <>
-                <p className="banner banner--error" role="alert">
-                  {resultado.errores.length} fila{resultado.errores.length === 1 ? "" : "s"} con error —
-                  no se creó ese repuesto, el resto de la carga no se vio afectado.
-                </p>
-                <div className="admin-tabla-wrap">
-                  <table className="admin-tabla">
-                    <thead>
-                      <tr>
-                        <th>Fila</th>
-                        <th>SKU</th>
-                        <th>Motivo</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {resultado.errores.map((fila) => (
-                        <tr key={fila.fila}>
-                          <td>{fila.fila}</td>
-                          <td>{fila.sku || "—"}</td>
-                          <td>{fila.motivo}</td>
+                <Alert tone="error">
+                  {resultado.errores.length} fila{resultado.errores.length === 1 ? "" : "s"} con error — no se creó ese repuesto, el resto de la
+                  carga no se vio afectado.
+                </Alert>
+                <div className="dt">
+                  <div className="dt-scroll">
+                    <table>
+                      <caption className="sr-only">Filas con error de la carga masiva</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">Fila</th>
+                          <th scope="col">SKU</th>
+                          <th scope="col">Motivo</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {resultado.errores.map((fila) => (
+                          <tr key={fila.fila}>
+                            <td data-label="Fila">{fila.fila}</td>
+                            <td data-label="SKU">{fila.sku || "—"}</td>
+                            <td data-label="Motivo">{fila.motivo}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </>
             )}
-
-            <div className="modal-actions">
-              <button type="button" onClick={onClose}>
-                Cerrar
-              </button>
-            </div>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit}>
+          </DialogBody>
+          <DialogFooter>
+            <Button onClick={onClose}>Cerrar</Button>
+          </DialogFooter>
+        </>
+      ) : (
+        <form className="dialog-form" onSubmit={handleSubmit}>
+          <DialogBody>
             <p className="modal-helper-text">
-              Descarga la plantilla, complétala con tu catálogo y súbela aquí. Las categorías, marcas y
-              proveedores que uses deben existir de antemano (créalos primero en su propia sección) —
-              se identifican por nombre, no por id.
+              Descarga la plantilla, complétala con tu catálogo y súbela aquí. Las categorías, marcas y proveedores que uses deben existir de
+              antemano (créalos primero en su propia sección) — se identifican por nombre, no por id.
             </p>
 
             <div className="modal-actions">
-              <button type="button" className="btn-secondary" onClick={handleDescargarPlantilla}>
-                ⬇ Descargar plantilla
-              </button>
+              <Button variant="secondary" icon="download" onClick={handleDescargarPlantilla}>
+                Descargar plantilla
+              </Button>
             </div>
 
             <div className="login-field">
               <label htmlFor={archivoId}>Archivo Excel (.xlsx)</label>
-              <input
-                id={archivoId}
-                type="file"
-                accept=".xlsx"
-                onChange={(event) => setArchivo(event.target.files?.[0] ?? null)}
-              />
+              <input id={archivoId} type="file" accept=".xlsx" onChange={(event) => setArchivo(event.target.files?.[0] ?? null)} />
             </div>
 
-            {error && (
-              <p className="banner banner--error" role="alert">
-                {error}
-              </p>
-            )}
+            {error && <Alert tone="error">{error}</Alert>}
+          </DialogBody>
+          <DialogFooter>
+            <CancelarCarga enviando={enviando} />
+            <Button type="submit" loading={enviando}>
+              {enviando ? "Procesando..." : "Cargar"}
+            </Button>
+          </DialogFooter>
+        </form>
+      )}
+    </Modal>
+  );
+}
 
-            <div className="modal-actions">
-              <button type="button" className="btn-secondary" onClick={onClose} disabled={enviando}>
-                Cancelar
-              </button>
-              <button type="submit" disabled={enviando}>
-                {enviando ? "Procesando..." : "Cargar"}
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
-    </div>
+function CancelarCarga({ enviando }: { enviando: boolean }) {
+  const { requestClose } = useDialogControl();
+  return (
+    <Button variant="secondary" onClick={requestClose} disabled={enviando}>
+      Cancelar
+    </Button>
   );
 }

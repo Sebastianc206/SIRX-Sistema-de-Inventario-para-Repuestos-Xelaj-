@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { Providers } from "@/test/providers";
 import RepuestosPage from "@/pages/RepuestosPage";
 import { RepuestoApiError } from "@/services/repuestoService";
 import type { Repuesto } from "@/types/repuesto";
@@ -96,7 +96,7 @@ const REPUESTO_OPERADOR: Omit<Repuesto, "precioCosto" | "proveedor"> = {
 };
 
 function renderPage() {
-  return render(<RepuestosPage />, { wrapper: MemoryRouter });
+  return render(<RepuestosPage />, { wrapper: Providers });
 }
 
 describe("RepuestosPage", () => {
@@ -130,7 +130,7 @@ describe("RepuestosPage", () => {
     expect(screen.getByText("Precio costo")).toBeInTheDocument();
     expect(screen.getByText("Q90.00")).toBeInTheDocument();
     expect(screen.getByText("Repuestos Guate S.A.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "+ Nuevo repuesto" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /nuevo repuesto/i })).toBeInTheDocument();
   });
 
   it("T-047: Administrador ve el botón de carga masiva y abre el modal", async () => {
@@ -143,7 +143,8 @@ describe("RepuestosPage", () => {
     renderPage();
     await screen.findByText("Pastillas de freno");
 
-    await userEvent.click(screen.getByRole("button", { name: /carga masiva/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^más$/i }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /carga masiva/i }));
 
     expect(screen.getByRole("dialog", { name: /carga masiva de repuestos/i })).toBeInTheDocument();
   });
@@ -161,9 +162,10 @@ describe("RepuestosPage", () => {
     expect(screen.queryByText("Precio costo")).not.toBeInTheDocument();
     expect(screen.queryByText("Proveedor")).not.toBeInTheDocument();
     expect(screen.queryByText("Repuestos Guate S.A.")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "+ Nuevo repuesto" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /nuevo repuesto/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /carga masiva/i })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /^más$/i }));
+    expect(screen.queryByRole("menuitem", { name: /carga masiva/i })).not.toBeInTheDocument();
   });
 
   it("T-035: pide confirmación antes de dar de baja y luego cambia el estado", async () => {
@@ -181,10 +183,10 @@ describe("RepuestosPage", () => {
     if (!fila) throw new Error("no se encontró la fila del repuesto");
 
     await userEvent.click(within(fila).getByRole("button", { name: /dar de baja/i }));
-    expect(within(fila).getByText(/¿dar de baja\?/i)).toBeInTheDocument();
+    const dialogo = screen.getByRole("alertdialog", { name: /¿dar de baja este repuesto\?/i });
     expect(mockCambiarEstadoRepuesto).not.toHaveBeenCalled();
 
-    await userEvent.click(within(fila).getByRole("button", { name: /confirmar/i }));
+    await userEvent.click(within(dialogo).getByRole("button", { name: /^dar de baja$/i }));
 
     expect(mockCambiarEstadoRepuesto).toHaveBeenCalledWith("FRE-001", false);
     expect(await screen.findByRole("status")).toHaveTextContent(/se dio de baja/i);
@@ -215,9 +217,9 @@ describe("RepuestosPage", () => {
     const fila = (await screen.findByText("Pastillas de freno")).closest("tr") as HTMLElement;
 
     await userEvent.click(within(fila).getByRole("button", { name: /^eliminar$/i }));
-    expect(within(fila).getByText(/¿eliminar definitivamente\?/i)).toBeInTheDocument();
+    const dialogo = screen.getByRole("alertdialog", { name: /¿eliminar definitivamente\?/i });
 
-    await userEvent.click(within(fila).getByRole("button", { name: /confirmar/i }));
+    await userEvent.click(within(dialogo).getByRole("button", { name: /^eliminar$/i }));
 
     expect(mockEliminarRepuesto).toHaveBeenCalledWith("FRE-001");
     expect(await screen.findByText(/se eliminó el repuesto/i)).toBeInTheDocument();
@@ -238,7 +240,7 @@ describe("RepuestosPage", () => {
     const fila = (await screen.findByText("Pastillas de freno")).closest("tr") as HTMLElement;
 
     await userEvent.click(within(fila).getByRole("button", { name: /^eliminar$/i }));
-    await userEvent.click(within(fila).getByRole("button", { name: /confirmar/i }));
+    await userEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: /^eliminar$/i }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "No se puede eliminar: tiene compras/ventas asociadas. Solo se puede desactivar.",
@@ -304,6 +306,7 @@ describe("RepuestosPage", () => {
       });
 
       renderPage();
+      await userEvent.click(screen.getByRole("button", { name: /filtros/i }));
 
       expect(await screen.findByRole("option", { name: "Frenos" })).toBeInTheDocument();
       expect(screen.getByRole("option", { name: "Bosch" })).toBeInTheDocument();
@@ -321,6 +324,7 @@ describe("RepuestosPage", () => {
       });
 
       renderPage();
+      await userEvent.click(screen.getByRole("button", { name: /filtros/i }));
       await screen.findByRole("option", { name: "Frenos" });
 
       await userEvent.selectOptions(screen.getByLabelText(/^categoría$/i), "1");

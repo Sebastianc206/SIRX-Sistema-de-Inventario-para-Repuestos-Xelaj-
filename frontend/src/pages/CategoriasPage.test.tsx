@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { Providers } from "@/test/providers";
 import CategoriasPage from "@/pages/CategoriasPage";
 import { CategoriaApiError } from "@/services/categoriaService";
 import type { Categoria } from "@/types/categoria";
@@ -35,7 +35,7 @@ const categorias: Categoria[] = [
 ];
 
 function renderPage() {
-  return render(<CategoriasPage />, { wrapper: MemoryRouter });
+  return render(<CategoriasPage />, { wrapper: Providers });
 }
 
 describe("CategoriasPage", () => {
@@ -101,9 +101,10 @@ describe("CategoriasPage", () => {
     if (!filaFrenos) throw new Error("no se encontró la fila de Frenos");
 
     await userEvent.click(within(filaFrenos).getByRole("button", { name: /^eliminar$/i }));
-    expect(within(filaFrenos).getByText(/¿eliminar\?/i)).toBeInTheDocument();
+    const dialogo = screen.getByRole("alertdialog", { name: /¿eliminar esta categoría\?/i });
+    expect(mockEliminarCategoria).not.toHaveBeenCalled();
 
-    await userEvent.click(within(filaFrenos).getByRole("button", { name: /sí, eliminar/i }));
+    await userEvent.click(within(dialogo).getByRole("button", { name: /sí, eliminar/i }));
 
     expect(mockEliminarCategoria).toHaveBeenCalledWith(1);
     expect(await screen.findByRole("status")).toHaveTextContent(/se eliminó la categoría "frenos"/i);
@@ -123,7 +124,7 @@ describe("CategoriasPage", () => {
     if (!filaFrenos) throw new Error("no se encontró la fila de Frenos");
 
     await userEvent.click(within(filaFrenos).getByRole("button", { name: /^eliminar$/i }));
-    await userEvent.click(within(filaFrenos).getByRole("button", { name: /sí, eliminar/i }));
+    await userEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: /sí, eliminar/i }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/repuestos asignados/i);
     expect(screen.getByText("Frenos")).toBeInTheDocument();

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { Providers } from "@/test/providers";
 import ProveedoresPage from "@/pages/ProveedoresPage";
 import { ProveedorApiError } from "@/services/proveedorService";
 import type { Proveedor } from "@/types/proveedor";
@@ -61,7 +61,7 @@ const proveedores: Proveedor[] = [
 ];
 
 function renderPage() {
-  return render(<ProveedoresPage />, { wrapper: MemoryRouter });
+  return render(<ProveedoresPage />, { wrapper: Providers });
 }
 
 describe("ProveedoresPage", () => {
@@ -123,9 +123,10 @@ describe("ProveedoresPage", () => {
     const fila = (await screen.findByText("Repuestos Guate S.A.")).closest("tr") as HTMLElement;
 
     await userEvent.click(within(fila).getByRole("button", { name: /dar de baja/i }));
-    expect(within(fila).getByText(/¿dar de baja\?/i)).toBeInTheDocument();
+    const dialogo = screen.getByRole("alertdialog", { name: /¿dar de baja este proveedor\?/i });
+    expect(mockCambiarEstadoProveedor).not.toHaveBeenCalled();
 
-    await userEvent.click(within(fila).getByRole("button", { name: /confirmar/i }));
+    await userEvent.click(within(dialogo).getByRole("button", { name: /^dar de baja$/i }));
 
     expect(mockCambiarEstadoProveedor).toHaveBeenCalledWith(1, false);
     expect(await screen.findByText(/se dio de baja el proveedor/i)).toBeInTheDocument();
@@ -140,7 +141,7 @@ describe("ProveedoresPage", () => {
     expect(within(fila).getByText("Inactivo")).toBeInTheDocument();
 
     await userEvent.click(within(fila).getByRole("button", { name: /activar/i }));
-    await userEvent.click(within(fila).getByRole("button", { name: /confirmar/i }));
+    await userEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: /^reactivar$/i }));
 
     expect(mockCambiarEstadoProveedor).toHaveBeenCalledWith(1, true);
     expect(await screen.findByText(/se reactivó el proveedor/i)).toBeInTheDocument();
@@ -161,9 +162,9 @@ describe("ProveedoresPage", () => {
     const fila = (await screen.findByText("Repuestos Guate S.A.")).closest("tr") as HTMLElement;
 
     await userEvent.click(within(fila).getByRole("button", { name: /^eliminar$/i }));
-    expect(within(fila).getByText(/¿eliminar definitivamente\?/i)).toBeInTheDocument();
+    const dialogo = screen.getByRole("alertdialog", { name: /¿eliminar definitivamente\?/i });
 
-    await userEvent.click(within(fila).getByRole("button", { name: /confirmar/i }));
+    await userEvent.click(within(dialogo).getByRole("button", { name: /^eliminar$/i }));
 
     expect(mockEliminarProveedor).toHaveBeenCalledWith(1);
     expect(await screen.findByText(/se eliminó el proveedor/i)).toBeInTheDocument();
@@ -182,7 +183,7 @@ describe("ProveedoresPage", () => {
     const fila = (await screen.findByText("Repuestos Guate S.A.")).closest("tr") as HTMLElement;
 
     await userEvent.click(within(fila).getByRole("button", { name: /^eliminar$/i }));
-    await userEvent.click(within(fila).getByRole("button", { name: /confirmar/i }));
+    await userEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: /^eliminar$/i }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "No se puede eliminar: tiene repuestos o compras asociadas. Solo se puede desactivar.",

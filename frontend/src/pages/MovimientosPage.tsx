@@ -1,6 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { Sidebar } from "@/components/Sidebar";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import { Alert } from "@/components/ui/Alert";
+import { Badge } from "@/components/ui/Badge";
+import type { BadgeTone } from "@/components/ui/Badge";
+import { Card } from "@/components/ui/Card";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { DataTable } from "@/components/ui/DataTable";
+import type { Column } from "@/components/ui/DataTable";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { IconButton } from "@/components/ui/IconButton";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { FilterToggle } from "@/components/ui/TableToolbar";
+import { useToast } from "@/components/ui/toastContext";
 import { PaginationControls } from "@/components/PaginationControls";
 import { ProductoMultiSelect, type OpcionMultiSelect } from "@/components/ProductoMultiSelect";
 import { VentasComparacionChart } from "@/components/VentasComparacionChart";
@@ -24,11 +34,11 @@ const ETIQUETA_CATEGORIA: Record<CategoriaMovimiento, string> = {
   ajuste: "Salida (ajuste)",
 };
 
-const BADGE_CATEGORIA: Record<CategoriaMovimiento, string> = {
-  compra: "stock-badge--en-stock",
-  venta: "stock-badge--transito",
-  merma: "stock-badge--bajo",
-  ajuste: "stock-badge--bajo",
+const BADGE_CATEGORIA: Record<CategoriaMovimiento, BadgeTone> = {
+  compra: "success",
+  venta: "info",
+  merma: "warning",
+  ajuste: "warning",
 };
 
 // Paleta categórica validada (skill dataviz, references/palette.md — los
@@ -102,6 +112,7 @@ function filtrarCatalogo(catalogo: Repuesto[], categoriaSel: string[], marcaSel:
 // de filtros completamente independiente: cambiar Categoría/Marca/
 // Producto/fechas en una no afecta a la otra.
 export default function MovimientosPage() {
+  const toast = useToast();
   const [catalogo, setCatalogo] = useState<Repuesto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [marcas, setMarcas] = useState<Marca[]>([]);
@@ -125,6 +136,8 @@ export default function MovimientosPage() {
   const opcionesMarcas = useMemo(() => aOpciones(marcas, (m) => m.idMarca, (m) => m.nombre), [marcas]);
 
   // ---------- Historial de movimientos ----------
+  const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
+  const idFiltros = useId();
   const [hCategoria, setHCategoria] = useState<string[]>([]);
   const [hMarca, setHMarca] = useState<string[]>([]);
   const [hProductos, setHProductos] = useState<string[]>([]);
@@ -139,8 +152,8 @@ export default function MovimientosPage() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [idAAnular, setIdAAnular] = useState<string | null>(null);
-  const [idEnProceso, setIdEnProceso] = useState<string | null>(null);
+  const [aAnular, setAAnular] = useState<MovimientoHistorial | null>(null);
+  const [enProceso, setEnProceso] = useState(false);
 
   // Solo filtra qué se MUESTRA en el dropdown de producto del historial —
   // `hProductos` no se toca acá, así que un producto ya marcado no se
@@ -196,9 +209,7 @@ export default function MovimientosPage() {
   // ventas y ajustes comparten SalidaMaestro pero exponen endpoints propios
   // (/api/ventas/:id/anular y /api/ajustes-inventario/:id/anular).
   async function handleAnularMovimiento(mov: MovimientoHistorial) {
-    const clave = `${mov.categoria}-${mov.id}`;
-    setIdEnProceso(clave);
-    setError(null);
+    setEnProceso(true);
     try {
       if (mov.tipo === "entrada") {
         await anularCompra(mov.id);
@@ -207,16 +218,17 @@ export default function MovimientosPage() {
       } else {
         await anularAjuste(mov.id);
       }
+      toast.success("El movimiento se anuló y el stock se revirtió.");
       await cargarMovimientos();
     } catch (err) {
-      setError(
+      toast.error(
         err instanceof MovimientoApiError || err instanceof VentaApiError || err instanceof AjusteApiError || err instanceof CompraApiError
           ? err.message
           : "No se pudo anular el movimiento",
       );
     } finally {
-      setIdEnProceso(null);
-      setIdAAnular(null);
+      setEnProceso(false);
+      setAAnular(null);
     }
   }
 
@@ -297,167 +309,139 @@ export default function MovimientosPage() {
     cargarComparacion();
   }, [cargarComparacion]);
 
+  const columnasMovimientos: Column<MovimientoHistorial>[] = [
+    { key: "fecha", header: "Fecha", primary: true, cell: (m) => new Date(m.fecha).toLocaleDateString("es-GT") },
+    {
+      key: "producto",
+      header: "Producto",
+      cell: (m) => (
+        <span>
+          <span className="cell-repuesto-name">{m.nombreProducto}</span>
+          <span className="cell-sku">{m.sku}</span>
+        </span>
+      ),
+    },
+    {
+      key: "tipo",
+      header: "Tipo",
+      cell: (m) => (
+        <Badge tone={BADGE_CATEGORIA[m.categoria]}>
+          {m.anulable === false ? (m.tipo === "entrada" ? "Entrada (conteo)" : "Salida (conteo)") : ETIQUETA_CATEGORIA[m.categoria]}
+        </Badge>
+      ),
+    },
+    { key: "cantidad", header: "Cantidad", align: "right", cell: (m) => m.cantidad },
+    {
+      key: "detalle",
+      header: "Detalle",
+      cell: (m) => {
+        const segmentos =
+          m.anulable === false
+            ? // Ajuste por conteo físico: no es compra ni salida; muestra el stock antes -> después.
+              [m.referencia, m.motivo, m.cantidadAntes != null && m.cantidadDespues != null ? `${m.cantidadAntes} → ${m.cantidadDespues}` : null]
+            : m.tipo === "entrada"
+            ? [m.referencia, m.proveedor]
+            : m.categoria === "venta"
+              ? // El motivo de una venta es siempre "Venta" — redundante con la
+                // referencia ("Venta #N"); el precio unitario aporta más.
+                [m.referencia, m.precioVenta !== undefined ? `Q${Number(m.precioVenta).toFixed(2)}` : null]
+              : [m.referencia, m.motivo];
+        if (m.anulada) segmentos.push("Anulada");
+        return segmentos.filter(Boolean).join(" · ");
+      },
+    },
+  ];
+
   return (
-    <div className="app-shell">
-      <Sidebar />
-      <main className="admin-page">
-        <Link to="/" className="admin-volver">
-          ← Volver al panel
-        </Link>
+    <div className="page-stack">
+      <PageHeader title="Movimientos" />
 
-        <div className="admin-toolbar">
-          <h2>Movimientos de inventario</h2>
-        </div>
-
-        <div className="form-card">
-          <h3>Historial de movimientos — filtros</h3>
-          <div className="admin-filtros">
-            <label>
-              Categoría
-              <ProductoMultiSelect
-                ariaLabel="Filtrar historial por categoría"
-                opciones={opcionesCategorias}
-                seleccionados={hCategoria}
-                onCambiarSeleccion={cambiarFiltroHistorial(setHCategoria)}
-                conOpcionTodas
-                etiquetaBoton={(n) => (n === 0 ? "Todas las categorías" : `${n} ${plural(n, "categoría", "categorías")} seleccionada${plural(n, "", "s")}`)}
-                mensajeVacio="No hay categorías registradas."
-              />
-            </label>
-            <label>
-              Marca
-              <ProductoMultiSelect
-                ariaLabel="Filtrar historial por marca"
-                opciones={opcionesMarcas}
-                seleccionados={hMarca}
-                onCambiarSeleccion={cambiarFiltroHistorial(setHMarca)}
-                conOpcionTodas
-                etiquetaBoton={(n) => (n === 0 ? "Todas las marcas" : `${n} ${plural(n, "marca", "marcas")} seleccionada${plural(n, "", "s")}`)}
-                mensajeVacio="No hay marcas registradas."
-              />
-            </label>
-            <label>
-              Producto
-              <ProductoMultiSelect
-                ariaLabel="Filtrar historial por producto"
-                opciones={opcionesProductoHistorial}
-                seleccionados={hProductos}
-                onCambiarSeleccion={cambiarFiltroHistorial(setHProductos)}
-                conOpcionTodas
-                etiquetaBoton={(n) => (n === 0 ? "Todos los productos" : `${n} ${plural(n, "producto", "productos")} seleccionado${plural(n, "", "s")}`)}
-                mensajeVacio="Ningún repuesto coincide con ese filtro."
-              />
-            </label>
-            <label>
-              Desde
-              <input type="date" value={hFechaDesde} onChange={(event) => cambiarFiltroHistorial(setHFechaDesde)(event.target.value)} />
-            </label>
-            <label>
-              Hasta
-              <input type="date" value={hFechaHasta} onChange={(event) => cambiarFiltroHistorial(setHFechaHasta)(event.target.value)} />
-            </label>
-          </div>
-        </div>
-
-        {error && (
-          <p className="banner banner--error" role="alert">
-            {error}
-          </p>
-        )}
-
-        <div className="admin-toolbar">
-          <h2>Historial de movimientos</h2>
-        </div>
-
-        {cargando ? (
-          <p className="admin-estado-vacio">Cargando movimientos...</p>
-        ) : movimientos.length === 0 ? (
-          <p className="admin-estado-vacio">No hay movimientos para estos filtros.</p>
-        ) : (
-          <div className="admin-tabla-wrap">
-            <table className="admin-tabla">
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Producto</th>
-                  <th>Tipo</th>
-                  <th>Cantidad</th>
-                  <th>Detalle</th>
-                  <th aria-label="Acciones" />
-                </tr>
-              </thead>
-              <tbody>
-                {movimientos.map((mov) => {
-                  const clave = `${mov.categoria}-${mov.id}`;
-                  const segmentos =
-                    mov.tipo === "entrada"
-                      ? [mov.referencia, mov.proveedor]
-                      : mov.categoria === "venta"
-                        ? // El motivo de una venta es siempre "Venta" — redundante con la
-                          // referencia ("Venta #N"); el precio unitario aporta más.
-                          [mov.referencia, mov.precioVenta !== undefined ? `Q${Number(mov.precioVenta).toFixed(2)}` : null]
-                        : [mov.referencia, mov.motivo];
-                  if (mov.anulada) segmentos.push("Anulada");
-
-                  return (
-                    <tr key={clave} className={mov.anulada ? "admin-tabla-fila-anulada" : undefined}>
-                      <td>{new Date(mov.fecha).toLocaleDateString("es-GT")}</td>
-                      <td>
-                        {mov.nombreProducto} <span className="modal-helper-text">({mov.sku})</span>
-                      </td>
-                      <td>
-                        <span className={`stock-badge ${BADGE_CATEGORIA[mov.categoria]}`}>
-                          {ETIQUETA_CATEGORIA[mov.categoria]}
-                        </span>
-                      </td>
-                      <td>{mov.cantidad}</td>
-                      <td>{segmentos.filter(Boolean).join(" · ")}</td>
-                      <td className="admin-acciones">
-                        {mov.anulada ? null : idAAnular === clave ? (
-                          <>
-                            <span className="modal-helper-text">¿Anular?</span>
-                            <button
-                              type="button"
-                              className="btn-danger"
-                              onClick={() => handleAnularMovimiento(mov)}
-                              disabled={idEnProceso === clave}
-                            >
-                              {idEnProceso === clave ? "..." : "Confirmar"}
-                            </button>
-                            <button
-                              type="button"
-                              className="btn-secondary"
-                              onClick={() => setIdAAnular(null)}
-                              disabled={idEnProceso === clave}
-                            >
-                              Cancelar
-                            </button>
-                          </>
-                        ) : (
-                          <button type="button" className="btn-danger" onClick={() => setIdAAnular(clave)}>
-                            Anular
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        <PaginationControls paginacion={paginacionMovimientos} onCambiarPagina={setPagina} etiqueta="movimiento" />
-
-        <div className="admin-toolbar">
-          <h2>Comparar ventas entre productos — filtros</h2>
-        </div>
-        <p className="modal-helper-text" style={{ marginBottom: "var(--space-md)" }}>
-          Elige 2 o más productos (hasta {MAX_PRODUCTOS_COMPARACION}) para comparar sus ventas (no incluye ajustes ni
-          compras) en el rango de fechas seleccionado — filtros independientes del historial de arriba.
+      <div className="toolbar">
+        <p className="toolbar-summary">
+          {hFechaDesde.split("-").reverse().join("/")} al {hFechaHasta.split("-").reverse().join("/")}
         </p>
+        <FilterToggle
+          open={filtrosAbiertos}
+          onToggle={() => setFiltrosAbiertos((v) => !v)}
+          count={[hCategoria, hMarca, hProductos].filter((f) => f.length > 0).length}
+          controls={idFiltros}
+        />
+      </div>
+      <div id={idFiltros} className="toolbar-panel toolbar-panel--grid" hidden={!filtrosAbiertos}>
+        <div className="filters-grid">
+          <label>
+            Categoría
+            <ProductoMultiSelect
+              ariaLabel="Filtrar historial por categoría"
+              opciones={opcionesCategorias}
+              seleccionados={hCategoria}
+              onCambiarSeleccion={cambiarFiltroHistorial(setHCategoria)}
+              conOpcionTodas
+              etiquetaBoton={(n) => (n === 0 ? "Todas las categorías" : `${n} ${plural(n, "categoría", "categorías")} seleccionada${plural(n, "", "s")}`)}
+              mensajeVacio="No hay categorías registradas."
+            />
+          </label>
+          <label>
+            Marca
+            <ProductoMultiSelect
+              ariaLabel="Filtrar historial por marca"
+              opciones={opcionesMarcas}
+              seleccionados={hMarca}
+              onCambiarSeleccion={cambiarFiltroHistorial(setHMarca)}
+              conOpcionTodas
+              etiquetaBoton={(n) => (n === 0 ? "Todas las marcas" : `${n} ${plural(n, "marca", "marcas")} seleccionada${plural(n, "", "s")}`)}
+              mensajeVacio="No hay marcas registradas."
+            />
+          </label>
+          <label>
+            Producto
+            <ProductoMultiSelect
+              ariaLabel="Filtrar historial por producto"
+              opciones={opcionesProductoHistorial}
+              seleccionados={hProductos}
+              onCambiarSeleccion={cambiarFiltroHistorial(setHProductos)}
+              conOpcionTodas
+              etiquetaBoton={(n) => (n === 0 ? "Todos los productos" : `${n} ${plural(n, "producto", "productos")} seleccionado${plural(n, "", "s")}`)}
+              mensajeVacio="Ningún repuesto coincide con ese filtro."
+            />
+          </label>
+          <label>
+            Desde
+            <input type="date" value={hFechaDesde} onChange={(event) => cambiarFiltroHistorial(setHFechaDesde)(event.target.value)} />
+          </label>
+          <label>
+            Hasta
+            <input type="date" value={hFechaHasta} onChange={(event) => cambiarFiltroHistorial(setHFechaHasta)(event.target.value)} />
+          </label>
+        </div>
+      </div>
 
-        <div className="admin-filtros">
+      {error && <Alert tone="error">{error}</Alert>}
+
+      <Card padded={false} className="table-card">
+        <div className="table-card-head">
+          <h2>Historial de movimientos</h2>
+          <span className="table-card-note">
+            {paginacionMovimientos.total} movimiento{paginacionMovimientos.total === 1 ? "" : "s"}
+          </span>
+        </div>
+        <DataTable
+          caption="Historial de movimientos de inventario"
+          columns={columnasMovimientos}
+          rows={movimientos}
+          rowKey={(m) => `${m.referencia}-${m.sku}`}
+          loading={cargando}
+          rowClassName={(m) => (m.anulada ? "dt-row--anulada" : undefined)}
+          empty={<EmptyState icon="arrows" title="No hay movimientos para estos filtros." description="Amplía el rango de fechas o quita algún filtro." />}
+          rowActions={(m) => (m.anulada || m.anulable === false ? null : <IconButton icon="undo" label="Anular" variant="danger-ghost" onClick={() => setAAnular(m)} />)}
+        />
+        <PaginationControls paginacion={paginacionMovimientos} onCambiarPagina={setPagina} etiqueta="movimiento" />
+      </Card>
+
+      <details className="disclosure">
+        <summary>Comparar ventas entre productos</summary>
+        <p className="muted disclosure-note">Elige 2 o más productos (hasta {MAX_PRODUCTOS_COMPARACION}). Solo cuenta ventas. Filtros independientes del historial.</p>
+        <div className="filters-grid">
           <label>
             Categoría
             <ProductoMultiSelect
@@ -505,25 +489,18 @@ export default function MovimientosPage() {
           </label>
         </div>
 
-        {errorComparacion && (
-          <p className="banner banner--error" role="alert">
-            {errorComparacion}
-          </p>
-        )}
+        {errorComparacion && <Alert tone="error">{errorComparacion}</Alert>}
 
         <div className="comparacion-layout">
-          <div className="form-card" style={{ margin: 0 }}>
+          <div>
             {cProductos.length < 2 ? (
-              <p className="admin-estado-vacio">Selecciona 2 o más productos en el filtro de arriba.</p>
+              <EmptyState compact icon="barChart" title="Selecciona 2 o más productos" description="Usa el filtro Producto de arriba para armar la comparación." />
             ) : cargandoComparacion ? (
-              <p className="admin-estado-vacio">Comparando...</p>
+              <p className="muted" role="status">
+                Comparando...
+              </p>
             ) : series ? (
-              <VentasComparacionChart
-                series={series}
-                colorPorSku={colorPorSku}
-                resaltados={resaltados}
-                onToggleResaltado={toggleResaltado}
-              />
+              <VentasComparacionChart series={series} colorPorSku={colorPorSku} resaltados={resaltados} onToggleResaltado={toggleResaltado} />
             ) : null}
           </div>
 
@@ -532,10 +509,7 @@ export default function MovimientosPage() {
               <>
                 <p className="comparacion-panel-titulo">Total vendido</p>
                 {series.map((serie) => (
-                  <div
-                    key={serie.sku}
-                    className={`comparacion-panel-item${resaltados.has(serie.sku) ? " comparacion-panel-item--activa" : ""}`}
-                  >
+                  <div key={serie.sku} className={`comparacion-panel-item${resaltados.has(serie.sku) ? " comparacion-panel-item--activa" : ""}`}>
                     <span className="comparacion-panel-item-nombre">
                       <span className="comparacion-checklist-swatch" style={{ background: colorPorSku(serie.sku) }} />
                       {serie.nombre}
@@ -547,7 +521,21 @@ export default function MovimientosPage() {
             )}
           </div>
         </div>
-      </main>
+      </details>
+
+      <ConfirmDialog
+        open={aAnular !== null}
+        title="¿Anular este movimiento?"
+        description={
+          aAnular
+            ? `Se anulará "${aAnular.referencia}" (${aAnular.nombreProducto ?? aAnular.sku}). El stock se revertirá y el registro quedará marcado como anulado.`
+            : undefined
+        }
+        confirmLabel="Anular movimiento"
+        loading={enProceso}
+        onConfirm={() => aAnular && handleAnularMovimiento(aAnular)}
+        onCancel={() => setAAnular(null)}
+      />
     </div>
   );
 }
