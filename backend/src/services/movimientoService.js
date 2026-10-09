@@ -36,6 +36,27 @@ class MovimientoError extends Error {
 // `sku`/`nombreProducto` identifican a qué producto pertenece la fila — antes
 // no hacía falta porque el historial era de un solo producto a la vez.
 function formatearMovimiento(entrada, { ocultarDatosSensibles }) {
+  // Ajuste aplicado por un conteo físico (conteo_detalle): positivo = entrada,
+  // negativo = salida. No es una compra ni una salida, así que no se puede
+  // anular desde aquí (`anulable: false`); se conserva como auditoría.
+  if (entrada.tipo === "conteo") {
+    return {
+      tipo: entrada.ajuste > 0 ? "entrada" : "salida",
+      categoria: "ajuste",
+      id: entrada.idConteo,
+      anulada: false,
+      anulable: false,
+      sku: entrada.sku,
+      nombreProducto: entrada.articulo?.nombre,
+      fecha: entrada.conteo?.fechaCierre ?? entrada.fecContado,
+      cantidad: Math.abs(entrada.ajuste),
+      motivo: "Conteo físico",
+      referencia: `Conteo #${entrada.idConteo}`,
+      cantidadAntes: entrada.cantidadAntes,
+      cantidadDespues: entrada.cantidadDespues,
+    };
+  }
+
   if (entrada.tipo === "entrada") {
     const base = {
       tipo: "entrada",
@@ -118,7 +139,14 @@ async function listarMovimientos({
     ...(tieneFiltroArticulo ? { articulo: whereArticulo } : {}),
   };
 
-  const [compras, salidas] = await Promise.all([
+  // Ajustes de conteos físicos aplicados (filtra por la fecha de cierre).
+  const whereConteo = {
+    ajuste: { not: 0 },
+    conteo: { estado: "aplicado", ...(fecCompra ? { fechaCierre: fecCompra } : {}) },
+    ...(tieneFiltroArticulo ? { articulo: whereArticulo } : {}),
+  };
+
+  const [compras, salidas, conteos] = await Promise.all([
     prisma.compraDetalle.findMany({
       where: whereComun,
       include: { compraMaestro: { include: { proveedor: true } }, articulo: true },
@@ -129,11 +157,18 @@ async function listarMovimientos({
       include: { tipoSalida: true, salidaMaestro: true, articulo: true },
       orderBy: { fecCompra: "desc" },
     }),
+    prisma.conteoDetalle.findMany({
+      where: whereConteo,
+      include: { conteo: true, articulo: true },
+    }),
   ]);
 
   const movimientos = [
     ...compras.map((c) => formatearMovimiento({ ...c, tipo: "entrada" }, { ocultarDatosSensibles })),
     ...salidas.map((s) => formatearMovimiento({ ...s, tipo: "salida" }, { ocultarDatosSensibles })),
+    ...conteos
+      .filter((c) => c.ajuste !== null && c.ajuste !== 0)
+      .map((c) => formatearMovimiento({ ...c, tipo: "conteo" }, { ocultarDatosSensibles })),
   ].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 
   const total = movimientos.length;

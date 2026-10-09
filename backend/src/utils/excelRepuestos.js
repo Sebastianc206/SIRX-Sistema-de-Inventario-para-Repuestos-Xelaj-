@@ -12,7 +12,7 @@ const COLUMNAS = [
   { clave: "marca", encabezado: "Marca", requerida: false },
   { clave: "precioVenta", encabezado: "Precio Venta", requerida: true },
   { clave: "precioCosto", encabezado: "Precio Costo", requerida: true },
-  { clave: "inventarioMinimo", encabezado: "Inventario Minimo", requerida: true },
+  { clave: "inventarioMinimo", encabezado: "Inventario Minimo", requerida: false },
   { clave: "ubicacion", encabezado: "Ubicacion", requerida: false },
   { clave: "proveedor", encabezado: "Proveedor", requerida: false },
 ];
@@ -57,7 +57,8 @@ async function generarPlantillaRepuestos() {
     marca: "",
     precioVenta: 150.5,
     precioCosto: 90,
-    inventarioMinimo: 5,
+    // Vacío = usar el umbral general de stock bajo.
+    inventarioMinimo: "",
     ubicacion: "Estante A1",
     proveedor: "",
   });
