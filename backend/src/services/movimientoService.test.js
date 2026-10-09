@@ -2,6 +2,7 @@ jest.mock("../utils/prismaClient", () => ({
   articulo: { findMany: jest.fn() },
   compraDetalle: { findMany: jest.fn() },
   salidaDetalle: { findMany: jest.fn() },
+  conteoDetalle: { findMany: jest.fn().mockResolvedValue([]) },
 }));
 
 const prisma = require("../utils/prismaClient");
@@ -13,6 +14,32 @@ describe("movimientoService", () => {
   });
 
   describe("listarMovimientos", () => {
+    it("incluye los ajustes de conteo físico aplicados (positivo = entrada, negativo = salida) sin permitir anular", async () => {
+      prisma.compraDetalle.findMany.mockResolvedValueOnce([]);
+      prisma.salidaDetalle.findMany.mockResolvedValueOnce([]);
+      prisma.conteoDetalle.findMany.mockResolvedValueOnce([
+        {
+          idConteo: 7, sku: "FRE-001", ajuste: 3, cantidadAntes: 10, cantidadDespues: 13,
+          fecContado: new Date("2026-10-01"), conteo: { fechaCierre: new Date("2026-10-02") }, articulo: { nombre: "Pastillas" },
+        },
+        {
+          idConteo: 7, sku: "FRE-002", ajuste: -2, cantidadAntes: 5, cantidadDespues: 3,
+          fecContado: new Date("2026-10-01"), conteo: { fechaCierre: new Date("2026-10-02") }, articulo: { nombre: "Discos" },
+        },
+        { idConteo: 7, sku: "FRE-003", ajuste: 0, conteo: {}, articulo: {} },
+      ]);
+
+      const r = await listarMovimientos({ ocultarDatosSensibles: false });
+
+      expect(r.movimientos).toHaveLength(2);
+      expect(r.movimientos[0]).toMatchObject({
+        tipo: "entrada", categoria: "ajuste", cantidad: 3, motivo: "Conteo físico", referencia: "Conteo #7",
+        anulable: false, anulada: false, cantidadAntes: 10, cantidadDespues: 13,
+      });
+      expect(r.movimientos[1]).toMatchObject({ tipo: "salida", cantidad: 2 });
+      expect(prisma.conteoDetalle.findMany.mock.calls[0][0].where.conteo.estado).toBe("aplicado");
+    });
+
     it("HU-10: sin filtros trae compras y salidas de todos los productos, ordenado por fecha", async () => {
       prisma.compraDetalle.findMany.mockResolvedValueOnce([
         {

@@ -19,6 +19,17 @@ vi.mock("@/services/categoriaService", async () => {
   return { ...actual, listarCategorias: mockListarCategorias };
 });
 
+vi.mock("@/services/configuracionService", async () => {
+  const actual = await vi.importActual<typeof import("@/services/configuracionService")>("@/services/configuracionService");
+  return {
+    ...actual,
+    obtenerConfiguracionStock: vi.fn().mockResolvedValue({
+      umbralGeneral: 7,
+      impacto: { totalActivos: 0, enBajo: 0, agotados: 0, conUmbralPropio: 0 },
+    }),
+  };
+});
+
 vi.mock("@/services/catalogosAuxiliaresService", () => ({
   listarMarcas: vi.fn().mockResolvedValue([]),
   listarProveedores: vi.fn().mockResolvedValue([]),
@@ -43,6 +54,8 @@ const REPUESTO_EXISTENTE: Repuesto = {
   precioVenta: 150,
   precioCosto: 90,
   inventarioMinimo: 5,
+  inventarioMinimoPropio: 5,
+  estadoStock: "en_stock",
   ubicacion: "Estante A1",
   estado: true,
   categoria: { idCategoria: 1, descripcion: "Frenos" },
@@ -83,11 +96,27 @@ describe("RepuestoFormModal", () => {
         nombre: "Pastillas de freno",
         precioVenta: 125.5,
         precioCosto: 80,
-        inventarioMinimo: 0,
+        // Alerta vacía = null = usa el umbral general.
+        inventarioMinimo: null,
         idCategoria: 1,
       }),
     );
     expect(onGuardado).toHaveBeenCalledWith("Repuesto creado correctamente.");
+  });
+
+  it("alerta de stock bajo: muestra el umbral general como ayuda y envía el valor propio", async () => {
+    mockListarCategorias.mockResolvedValueOnce(categorias);
+    mockCrearRepuesto.mockResolvedValueOnce(REPUESTO_EXISTENTE);
+
+    render(<RepuestoFormModal repuesto={null} onClose={vi.fn()} onGuardado={vi.fn()} />);
+
+    expect(await screen.findByText(/usa el umbral general \(7\)/i)).toBeInTheDocument();
+
+    await llenarCamposBasicos();
+    await userEvent.type(screen.getByLabelText(/alerta de stock bajo/i), "12");
+    await userEvent.click(screen.getByRole("button", { name: /guardar/i }));
+
+    expect(mockCrearRepuesto).toHaveBeenCalledWith(expect.objectContaining({ inventarioMinimo: 12 }));
   });
 
   it("no envía el formulario si no se eligió categoría", async () => {

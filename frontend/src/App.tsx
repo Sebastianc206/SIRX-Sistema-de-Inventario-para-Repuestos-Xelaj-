@@ -1,112 +1,98 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import LoginPage from "@/pages/LoginPage";
-import DashboardPage from "@/pages/DashboardPage";
-import UsuariosPage from "@/pages/UsuariosPage";
-import CategoriasPage from "@/pages/CategoriasPage";
-import RepuestosPage from "@/pages/RepuestosPage";
-import ProveedoresPage from "@/pages/ProveedoresPage";
-import ComprasPage from "@/pages/ComprasPage";
-import VentasPage from "@/pages/VentasPage";
-import AjustesPage from "@/pages/AjustesPage";
-import MovimientosPage from "@/pages/MovimientosPage";
+import { ToastProvider } from "@/components/ui/Toast";
+import { Skeleton } from "@/components/ui/Skeleton";
+
+// Cada pantalla se carga bajo demanda (code splitting por ruta): el bundle
+// inicial solo trae el shell, el login y lo que la ruta actual necesita.
+const LoginPage = lazy(() => import("@/pages/LoginPage"));
+const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
+const UsuariosPage = lazy(() => import("@/pages/UsuariosPage"));
+const CategoriasPage = lazy(() => import("@/pages/CategoriasPage"));
+const RepuestosPage = lazy(() => import("@/pages/RepuestosPage"));
+const ProveedoresPage = lazy(() => import("@/pages/ProveedoresPage"));
+const ComprasPage = lazy(() => import("@/pages/ComprasPage"));
+const VentasPage = lazy(() => import("@/pages/VentasPage"));
+const AjustesPage = lazy(() => import("@/pages/AjustesPage"));
+const MovimientosPage = lazy(() => import("@/pages/MovimientosPage"));
+const ConfiguracionPage = lazy(() => import("@/pages/ConfiguracionPage"));
+const ReportesPage = lazy(() => import("@/pages/ReportesPage"));
+const ConteosPage = lazy(() => import("@/pages/ConteosPage"));
+const ConteoDetallePage = lazy(() => import("@/pages/ConteoDetallePage"));
+const NotFoundPage = lazy(() => import("@/pages/NotFoundPage"));
+
+const SOLO_ADMIN = ["Administrador"];
+
+function PantallaCargando() {
+  return (
+    <div className="page-loading" role="status" aria-busy="true">
+      <span className="sr-only">Cargando...</span>
+      <Skeleton width="14rem" height="2rem" />
+      <Skeleton height="10rem" />
+    </div>
+  );
+}
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/usuarios"
-            element={
-              <ProtectedRoute roles={["Administrador"]}>
-                <UsuariosPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/categorias"
-            element={
-              <ProtectedRoute roles={["Administrador"]}>
-                <CategoriasPage />
-              </ProtectedRoute>
-            }
-          />
-          {/* HU-04, criterio 5: el listado es consultable por cualquier
-              usuario autenticado, sin restricción de rol a nivel de ruta —
-              el propio componente/la API deciden qué columnas/acciones
-              mostrar según el rol. */}
-          <Route
-            path="/repuestos"
-            element={
-              <ProtectedRoute>
-                <RepuestosPage />
-              </ProtectedRoute>
-            }
-          />
-          {/* HU-26, criterio 2: solo Administrador — Operador ni siquiera
-              puede llegar a esta ruta (ProtectedRoute lo manda al dashboard). */}
-          <Route
-            path="/proveedores"
-            element={
-              <ProtectedRoute roles={["Administrador"]}>
-                <ProveedoresPage />
-              </ProtectedRoute>
-            }
-          />
-          {/* HU-08: registrar compras involucra precioCompra (dato de
-              costo) — exclusivo de Administrador, igual que Proveedores. */}
-          <Route
-            path="/compras"
-            element={
-              <ProtectedRoute roles={["Administrador"]}>
-                <ComprasPage />
-              </ProtectedRoute>
-            }
-          />
-          {/* HU-13/14: venta de mostrador es tarea de Operador
-              (CLAUDE.md) — abierto a cualquier rol autenticado. */}
-          <Route
-            path="/ventas"
-            element={
-              <ProtectedRoute>
-                <VentasPage />
-              </ProtectedRoute>
-            }
-          />
-          {/* HU-09: ajustes/mermas son una tarea operativa de bodega, sin
-              datos de costo — abierto a cualquier rol autenticado. */}
-          <Route
-            path="/ajustes"
-            element={
-              <ProtectedRoute>
-                <AjustesPage />
-              </ProtectedRoute>
-            }
-          />
-          {/* HU-10: historial de movimientos + comparación de ventas —
-              exclusivo de Administrador (visión de auditoría/reportes). */}
-          <Route
-            path="/movimientos"
-            element={
-              <ProtectedRoute roles={["Administrador"]}>
-                <MovimientosPage />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
+    <ErrorBoundary nivel="global">
+      <BrowserRouter>
+        <AuthProvider>
+          <ToastProvider>
+            <Suspense fallback={<PantallaCargando />}>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+
+                {/* Shell único: toda ruta autenticada vive dentro de AppLayout
+                    y se renderiza vía <Outlet />. */}
+                <Route element={<ProtectedRoute />}>
+                  <Route element={<AppLayout />}>
+                    <Route index element={<DashboardPage />} />
+
+                    {/* HU-04, criterio 5: el listado es consultable por cualquier
+                        usuario autenticado — el propio componente/la API deciden
+                        qué columnas/acciones mostrar según el rol. */}
+                    <Route path="repuestos" element={<RepuestosPage />} />
+
+                    {/* HU-13/14: venta de mostrador es tarea de Operador. */}
+                    <Route path="ventas" element={<VentasPage />} />
+
+                    {/* Reportes: cualquier rol autenticado; el catálogo y cada
+                        reporte los recorta la API según el rol (Operador solo
+                        ve los que no exponen costos, ingresos ni proveedores). */}
+                    <Route path="reportes" element={<ReportesPage />} />
+
+                    {/* HU-09: ajustes/mermas, tarea operativa sin datos de costo. */}
+                    <Route path="ajustes" element={<AjustesPage />} />
+
+                    {/* Solo Administrador (ProtectedRoute manda al resto al inicio):
+                        usuarios, categorías, proveedores (HU-26), compras (HU-08,
+                        involucra precioCompra), movimientos (HU-10, auditoría) y
+                        configuración (umbral de stock bajo). */}
+                    <Route element={<ProtectedRoute roles={SOLO_ADMIN} />}>
+                      <Route path="usuarios" element={<UsuariosPage />} />
+                      <Route path="categorias" element={<CategoriasPage />} />
+                      <Route path="proveedores" element={<ProveedoresPage />} />
+                      <Route path="compras" element={<ComprasPage />} />
+                      <Route path="movimientos" element={<MovimientosPage />} />
+                      <Route path="conteos" element={<ConteosPage />} />
+                      <Route path="conteos/:id" element={<ConteoDetallePage />} />
+                      <Route path="configuracion" element={<ConfiguracionPage />} />
+                    </Route>
+
+                    <Route path="*" element={<NotFoundPage />} />
+                  </Route>
+                </Route>
+              </Routes>
+            </Suspense>
+          </ToastProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

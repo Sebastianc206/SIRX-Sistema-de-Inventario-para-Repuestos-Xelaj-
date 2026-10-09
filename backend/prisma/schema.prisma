@@ -34,6 +34,8 @@ model Colaborador {
   usuario           Usuario?
   ventasRealizadas  SalidaMaestro[]
   comprasRealizadas CompraMaestro[]
+  conteosCreados    ConteoFisico[] @relation("ConteoCreador")
+  conteosCerrados   ConteoFisico[] @relation("ConteoCierre")
 
   @@map("colaborador")
 }
@@ -118,6 +120,7 @@ model Categoria {
   descripcion String
 
   articulos Articulo[]
+  conteos   ConteoFisico[]
 
   @@map("categoria")
 }
@@ -138,7 +141,10 @@ model Marca {
 model Articulo {
   sku              String  @id(map: "pk_articulo")
   nombre           String
-  inventarioMinimo Int     @default(0) @map("inventario_minimo")
+  // Umbral de "stock bajo" PROPIO del producto. null = usa el umbral
+  // general de `Configuracion` (clave `umbral_stock_bajo`). Regla efectiva
+  // en un solo lugar: services/umbralStockService.js.
+  inventarioMinimo Int?    @map("inventario_minimo")
   precioVenta      Decimal @map("precio_venta") @db.Decimal
   precioCosto      Decimal @map("precio_costo") @db.Decimal
   ubicacion        String?
@@ -154,6 +160,7 @@ model Articulo {
   modelosCompatibles ModeloCompatible[]
   salidaDetalles     SalidaDetalle[]
   compraDetalles     CompraDetalle[]
+  conteoDetalles     ConteoDetalle[]
 
   @@map("articulo")
 }
@@ -166,6 +173,17 @@ model Inventario {
   articulo Articulo @relation(fields: [sku], references: [sku], map: "fk_inventario_articulo")
 
   @@map("inventario")
+}
+
+// Configuración global clave/valor (valor como texto). Hoy solo guarda
+// `umbral_stock_bajo`: el umbral por defecto de "stock bajo" para todo el
+// catálogo, editable solo por Administrador.
+model Configuracion {
+  clave      String   @id(map: "pk_configuracion")
+  valor      String
+  fecTransac DateTime @default(now()) @map("fec_transac")
+
+  @@map("configuracion")
 }
 
 model Cliente {
@@ -321,4 +339,51 @@ model ModeloCompatible {
 
   @@id([sku, idModelo], map: "pk_modelo_compatible")
   @@map("modelo_compatible")
+}
+
+// Conteo físico de inventario (acta del proyecto: diferencia <= 5 % entre
+// sistema y conteo). Estados: borrador -> aplicado (se cerró y se corrigió
+// Inventario) | cerrado (se cerró SIN corregir, solo informe) | cancelado.
+// Un conteo no borrador es inmutable. idCategoria NULL = todo el catálogo.
+// Reglas de concurrencia y de ajuste: services/conteoService.js.
+model ConteoFisico {
+  idConteo            Int       @id(map: "pk_conteo_fisico") @map("id_conteo")
+  nombre              String
+  fechaConteo         DateTime  @map("fecha_conteo")
+  estado              String    @default("borrador")
+  idCategoria         Int?      @map("id_categoria")
+  idColaborador       Int       @map("id_colaborador")
+  idColaboradorCierre Int?      @map("id_colaborador_cierre")
+  fechaCierre         DateTime? @map("fecha_cierre")
+  fecTransac          DateTime  @default(now()) @map("fec_transac")
+
+  categoria Categoria?       @relation(fields: [idCategoria], references: [idCategoria], map: "fk_conteo_categoria")
+  creador   Colaborador      @relation("ConteoCreador", fields: [idColaborador], references: [idColaborador], map: "fk_conteo_colaborador")
+  cierre    Colaborador?     @relation("ConteoCierre", fields: [idColaboradorCierre], references: [idColaborador], map: "fk_conteo_colaborador_cierre")
+  detalles  ConteoDetalle[]
+
+  @@map("conteo_fisico")
+}
+
+// Una línea por SKU contado. cantidadSistema = stock registrado en el
+// momento de contar (se refresca si el SKU se vuelve a contar). Al aplicar,
+// `ajuste` = contada - cantidadSistema se SUMA al stock vigente (no se
+// pisa), de modo que las ventas ocurridas durante el conteo no se pierden;
+// cantidadAntes/cantidadDespues guardan el stock real antes/después.
+model ConteoDetalle {
+  idDetalleConteo Int      @id(map: "pk_conteo_detalle") @map("id_detalle_conteo")
+  idConteo        Int      @map("id_conteo")
+  sku             String
+  cantidadSistema Int      @map("cantidad_sistema")
+  cantidadContada Int      @map("cantidad_contada")
+  fecContado      DateTime @default(now()) @map("fec_contado")
+  ajuste          Int?
+  cantidadAntes   Int?     @map("cantidad_antes")
+  cantidadDespues Int?     @map("cantidad_despues")
+
+  conteo   ConteoFisico @relation(fields: [idConteo], references: [idConteo], onDelete: Cascade, map: "fk_conteodetalle_conteo")
+  articulo Articulo     @relation(fields: [sku], references: [sku], map: "fk_conteodetalle_articulo")
+
+  @@unique([idConteo, sku], map: "uq_conteo_detalle_sku")
+  @@map("conteo_detalle")
 }

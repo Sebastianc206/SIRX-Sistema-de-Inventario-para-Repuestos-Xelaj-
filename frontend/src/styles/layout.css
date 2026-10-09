@@ -1,0 +1,818 @@
+/* Shell de la aplicación: sidebar colapsable, topbar, breadcrumbs, menú de
+   usuario, paleta de comandos y estructura de página. Mobile-first: por
+   defecto 1 columna; el sidebar fijo aparece desde 900px. */
+
+.app {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.app-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.app-content {
+  flex: 1;
+  width: 100%;
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: var(--space-md) var(--space-md) var(--space-2xl);
+  outline: none;
+}
+
+/* ---------- Sidebar (móvil: panel deslizable) ---------- */
+
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  height: 100dvh;
+  z-index: var(--z-sidebar);
+  width: min(18rem, 86vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--pino-900);
+  color: var(--text-on-dark);
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition:
+    transform var(--dur-base) var(--ease),
+    visibility 0s linear var(--dur-base);
+}
+
+.sidebar--open {
+  transform: none;
+  visibility: visible;
+  transition: transform var(--dur-base) var(--ease);
+  box-shadow: var(--shadow-pop);
+}
+
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-sidebar) - 1);
+  background: var(--overlay);
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: var(--topbar-h);
+  padding: 0 var(--space-md);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.1;
+}
+
+.sidebar-brand-name {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: var(--font-bold);
+  letter-spacing: 0.04em;
+  color: #fff;
+}
+
+.sidebar-brand-tag {
+  font-size: var(--text-xs);
+  color: var(--text-on-dark-muted);
+  white-space: nowrap;
+}
+
+.sidebar-close {
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  width: var(--target);
+  height: var(--target);
+  color: var(--text-on-dark);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+}
+
+.sidebar-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* La nav tiene su propio scroll si hay muchos ítems; marca y pie quedan
+   anclados arriba/abajo (min-height:0 permite encoger dentro del flex). */
+.sidebar-nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-sm) var(--space-sm) var(--space-md);
+}
+
+.sidebar-group + .sidebar-group {
+  margin-top: var(--space-sm);
+}
+
+.sidebar-group ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 2px;
+}
+
+.sidebar-group ul[hidden] {
+  display: none;
+}
+
+/* Encabezado plegable de los grupos secundarios del menú. */
+.sidebar-group-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: var(--target);
+  padding: 0 0.75rem;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-on-dark-muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+
+.sidebar-group-toggle:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.sidebar-link,
+.sidebar-collapse {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: var(--target);
+  padding: 0 0.75rem;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-on-dark);
+  text-decoration: none;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  transition: background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+
+.sidebar-link:hover,
+.sidebar-collapse:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.sidebar-link--active {
+  background: rgba(255, 255, 255, 0.13);
+  color: #fff;
+}
+
+.sidebar-link--active::before {
+  content: "";
+  position: absolute;
+  left: -0.5rem;
+  top: 0.55rem;
+  bottom: 0.55rem;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: var(--color-accent);
+}
+
+.sidebar-brand,
+.sidebar-footer {
+  flex-shrink: 0;
+}
+
+.sidebar-footer {
+  padding: var(--space-sm);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-collapse {
+  display: none;
+}
+
+/* ---------- Topbar ---------- */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-topbar);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: var(--topbar-h);
+  padding: 0 var(--space-md);
+  background: var(--color-neutral-0);
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+.topbar-menu-btn {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--target);
+  height: var(--target);
+  margin-left: calc(var(--space-sm) * -1);
+  color: var(--color-neutral-700);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+}
+
+.topbar-menu-btn:hover {
+  background: var(--color-neutral-200);
+}
+
+.breadcrumbs {
+  flex: 1;
+  min-width: 0;
+}
+
+.breadcrumbs ol {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+  color: var(--color-neutral-500);
+  white-space: nowrap;
+}
+
+.breadcrumbs li {
+  display: none;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+/* Móvil: solo la miga actual. */
+.breadcrumbs li:last-child {
+  display: flex;
+}
+
+.breadcrumbs a {
+  color: var(--color-neutral-600);
+  text-decoration: none;
+}
+
+.breadcrumbs a:hover {
+  color: var(--color-primary-600);
+  text-decoration: underline;
+}
+
+.breadcrumbs-current {
+  font-weight: var(--font-semibold);
+  color: var(--color-neutral-900);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.breadcrumbs-sep {
+  color: var(--color-neutral-400);
+}
+
+.topbar-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: var(--target);
+  min-width: var(--target);
+  justify-content: center;
+  padding: 0 0.75rem;
+  color: var(--color-neutral-600);
+  background: var(--color-neutral-50);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 999px;
+  font-size: var(--text-sm);
+  transition: border-color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease);
+}
+
+.topbar-search:hover {
+  border-color: var(--pino-400);
+  background: var(--color-neutral-0);
+}
+
+.topbar-search-text,
+.topbar-search-kbd {
+  display: none;
+}
+
+.topbar-search-kbd {
+  gap: 0.25rem;
+}
+
+/* ---------- Menú de usuario ---------- */
+
+.user-menu {
+  position: relative;
+}
+
+.user-menu-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: var(--target);
+  padding: 0 0.4rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+}
+
+.user-menu-trigger:hover,
+.user-menu-trigger[aria-expanded="true"] {
+  background: var(--color-neutral-100);
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  letter-spacing: 0.03em;
+  color: #fff;
+  background: var(--pino-600);
+}
+
+.user-menu-text,
+.user-menu-caret {
+  display: none;
+}
+
+.user-menu-text {
+  flex-direction: column;
+  text-align: left;
+  line-height: 1.2;
+}
+
+.user-menu-name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  max-width: 11rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-menu-role {
+  font-size: var(--text-xs);
+  color: var(--color-neutral-500);
+}
+
+.menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.4rem);
+  z-index: var(--z-overlay);
+  min-width: 15rem;
+  padding: 0.4rem;
+  background: var(--color-neutral-0);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-pop);
+}
+
+.menu-header {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 0.75rem 0.65rem;
+  margin-bottom: 0.3rem;
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+.menu-header-name {
+  font-weight: var(--font-semibold);
+}
+
+.menu-header-sub {
+  font-size: var(--text-xs);
+  color: var(--color-neutral-500);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  min-height: var(--target);
+  padding: 0 0.75rem;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-neutral-700);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  text-align: left;
+}
+
+.menu-item:hover {
+  background: var(--color-neutral-100);
+}
+
+.menu-item--danger {
+  color: var(--color-error-fg);
+}
+
+.menu-item--danger:hover {
+  background: var(--color-error-bg);
+}
+
+/* ---------- Estructura de página ---------- */
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin: var(--space-sm) 0 var(--space-lg);
+}
+
+.page-header h1 {
+  font-size: var(--text-xl);
+}
+
+.page-header-text p {
+  margin-top: 0.25rem;
+  color: var(--color-neutral-500);
+  font-size: var(--text-sm);
+  max-width: 46rem;
+}
+
+.page-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.page-stack {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+}
+
+.page-loading {
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+}
+
+.page-loading-grid {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+
+/* ---------- Paleta de comandos ---------- */
+
+.palette-body {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.palette-input {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 var(--space-md);
+  border-bottom: 1px solid var(--color-neutral-200);
+  color: var(--color-neutral-500);
+}
+
+.palette-input input {
+  flex: 1;
+  min-height: 3.5rem;
+  padding: 0;
+  font-size: var(--text-base);
+  color: var(--color-neutral-900);
+  background: transparent;
+  border: 0;
+  outline: none;
+  box-shadow: none;
+}
+
+.palette-input:focus-within {
+  box-shadow: inset 0 -2px 0 var(--pino-500);
+}
+
+.palette-list {
+  margin: 0;
+  padding: 0.4rem;
+  list-style: none;
+  overflow-y: auto;
+  max-height: min(24rem, 55vh);
+}
+
+.palette-group {
+  padding: 0.6rem 0.75rem 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: var(--font-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-neutral-500);
+}
+
+.palette-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: var(--target);
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.palette-option--active {
+  background: var(--pino-100);
+  box-shadow: inset 3px 0 0 var(--pino-600);
+}
+
+.palette-option-icon {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  color: var(--pino-600);
+  background: var(--color-neutral-0);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 8px;
+}
+
+.palette-option-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.palette-option-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+}
+
+.palette-option-detail {
+  font-size: var(--text-xs);
+  color: var(--color-neutral-500);
+}
+
+.palette-option-go {
+  color: var(--pino-600);
+  opacity: 0;
+}
+
+.palette-option--active .palette-option-go {
+  opacity: 1;
+}
+
+.palette-empty {
+  padding: var(--space-md);
+  font-size: var(--text-sm);
+  color: var(--color-neutral-500);
+  text-align: center;
+}
+
+.palette-hint {
+  display: none;
+  gap: var(--space-md);
+  padding: 0.6rem var(--space-md);
+  font-size: var(--text-xs);
+  color: var(--color-neutral-500);
+  border-top: 1px solid var(--color-neutral-200);
+  background: var(--color-neutral-50);
+}
+
+/* ---------- 404 / error global ---------- */
+
+.not-found {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: var(--space-xl) 0;
+  overflow: hidden;
+}
+
+.not-found-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  justify-content: center;
+}
+
+.error-screen {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-sm);
+  max-width: 30rem;
+  margin: var(--space-2xl) auto;
+  padding: var(--space-lg);
+  text-align: center;
+}
+
+.error-screen--global {
+  min-height: 100vh;
+  align-content: center;
+  margin: 0 auto;
+}
+
+.error-screen p {
+  color: var(--color-neutral-600);
+}
+
+.error-screen-icon {
+  display: grid;
+  place-items: center;
+  width: 4rem;
+  height: 4rem;
+  color: var(--color-error-fg);
+  background: var(--color-error-bg);
+  border-radius: 50%;
+}
+
+.error-screen-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  justify-content: center;
+  margin-top: var(--space-sm);
+}
+
+/* ---------- Tablet / escritorio ---------- */
+
+@media (min-width: 640px) {
+  .app-content {
+    padding: var(--space-lg) var(--space-lg) var(--space-2xl);
+  }
+
+  .topbar {
+    padding: 0 var(--space-lg);
+  }
+
+  .user-menu-text {
+    display: flex;
+  }
+
+  .user-menu-caret {
+    display: block;
+    color: var(--color-neutral-500);
+  }
+
+  /* Las migas completas solo caben desde 900px (con el menú lateral fijo);
+     en tablet queda la actual, para que no choque con el buscador. */
+  .topbar-search {
+    justify-content: flex-start;
+    min-width: 14rem;
+  }
+
+  .topbar-search-text {
+    display: inline;
+    flex: 1;
+    text-align: left;
+    color: var(--color-neutral-500);
+  }
+
+  .topbar-search-kbd {
+    display: inline-flex;
+  }
+
+  .palette-hint {
+    display: flex;
+  }
+}
+
+@media (min-width: 900px) {
+  .app {
+    display: grid;
+    grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+    transition: grid-template-columns var(--dur-base) var(--ease);
+  }
+
+  .app--collapsed {
+    grid-template-columns: var(--rail-w) minmax(0, 1fr);
+  }
+
+  /* Fijo al viewport mientras el contenido scrollea. OJO: el shorthand
+     `inset` pisa a `top`; antes `inset: auto` dejaba top:auto y el sticky
+     nunca se pegaba (el sidebar "se quedaba volando" a media pantalla). */
+  .sidebar {
+    position: sticky;
+    align-self: start;
+    inset: 0 auto auto 0;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    width: auto;
+    transform: none;
+    visibility: visible;
+    box-shadow: none;
+  }
+
+  .sidebar-backdrop,
+  .sidebar-close,
+  .topbar-menu-btn {
+    display: none;
+  }
+
+  .sidebar-collapse {
+    display: flex;
+  }
+
+  .breadcrumbs li {
+    display: flex;
+  }
+
+  /* Modo icon-rail: solo íconos; las etiquetas siguen disponibles para
+     lectores de pantalla y como tooltip. */
+  .sidebar--collapsed .sidebar-brand {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .sidebar--collapsed .sidebar-brand-text {
+    display: none;
+  }
+
+  .sidebar--collapsed .sidebar-group + .sidebar-group {
+    margin-top: var(--space-sm);
+    padding-top: var(--space-sm);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .sidebar--collapsed .sidebar-link,
+  .sidebar--collapsed .sidebar-collapse {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .sidebar--collapsed .sidebar-link-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .sidebar--collapsed .sidebar-link--active::before {
+    left: -0.5rem;
+  }
+}
+
+@media (min-width: 1400px) {
+  .app-content {
+    padding-left: var(--space-xl);
+    padding-right: var(--space-xl);
+  }
+}
+
+/* Menú "Más" (acciones secundarias de una vista). */
+.more-menu {
+  position: relative;
+}
+
+.more-menu-list {
+  min-width: 14rem;
+}
+
+/* Logo de marca (assets/brand): proporciones fijas, nunca se deforma. */
+.sidebar-brand-logo,
+.topbar-brand,
+.login-brand-logo {
+  display: block;
+  flex-shrink: 0;
+  max-width: none;
+  height: auto;
+}
+
+.topbar-brand {
+  margin-left: calc(var(--space-xs, 0.25rem) * -1);
+}
+
+@media (min-width: 900px) {
+  .topbar-brand {
+    display: none;
+  }
+}

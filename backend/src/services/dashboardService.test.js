@@ -1,5 +1,6 @@
 jest.mock("../utils/prismaClient", () => ({
   articulo: { findMany: jest.fn(), count: jest.fn() },
+  configuracion: { findUnique: jest.fn() },
   salidaMaestro: { aggregate: jest.fn() },
 }));
 
@@ -12,6 +13,21 @@ describe("dashboardService", () => {
   });
 
   describe("listarAlertasStockBajo", () => {
+    it("usa el umbral general cuando el producto no tiene uno propio y respeta el propio", async () => {
+      prisma.configuracion.findUnique.mockResolvedValueOnce({ valor: "10" });
+      prisma.articulo.findMany.mockResolvedValueOnce([
+        { sku: "G", nombre: "General", inventarioMinimo: null, inventario: { cantidad: 8 } }, // bajo (<=10)
+        { sku: "P", nombre: "Propio", inventarioMinimo: 2, inventario: { cantidad: 8 } }, // en stock
+        { sku: "Z", nombre: "Propio 0", inventarioMinimo: 0, inventario: { cantidad: 1 } }, // en stock
+      ]);
+
+      const alertas = await listarAlertasStockBajo();
+
+      expect(alertas).toEqual([
+        { sku: "G", nombre: "General", cantidadInventario: 8, inventarioMinimo: 10, estadoStock: "bajo" },
+      ]);
+    });
+
     it("HU-12: solo incluye repuestos activos con cantidad <= inventarioMinimo, ordenados ascendente", async () => {
       prisma.articulo.findMany.mockResolvedValueOnce([
         { sku: "A", nombre: "En stock", inventarioMinimo: 5, inventario: { cantidad: 20 } },

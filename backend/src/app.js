@@ -13,6 +13,9 @@ const salidaAjusteRoutes = require("./routes/salidaAjusteRoutes");
 const ventaRoutes = require("./routes/ventaRoutes");
 const movimientoRoutes = require("./routes/movimientoRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const configuracionRoutes = require("./routes/configuracionRoutes");
+const reporteRoutes = require("./routes/reporteRoutes");
+const conteoRoutes = require("./routes/conteoRoutes");
 
 // T-105: fail fast. Si JWT_SECRET/JWT_EXPIRES_IN no cumplen la política de
 // sesión corta, el servidor ni siquiera termina de arrancar — mejor eso
@@ -30,7 +33,9 @@ app.set("trust proxy", 1);
 // insegura se redirige a HTTPS sin llegar a procesarse.
 app.use(forzarHttps);
 
-app.use(cors({ origin: process.env.CORS_ORIGIN }));
+// Content-Disposition debe estar expuesto para que el navegador (fetch) lea
+// el nombre del archivo de las descargas de reportes.
+app.use(cors({ origin: process.env.CORS_ORIGIN, exposedHeaders: ["Content-Disposition"] }));
 app.use(express.json());
 
 app.get("/health", (_req, res) => {
@@ -48,5 +53,8 @@ app.use("/api/ajustes-inventario", salidaAjusteRoutes);
 app.use("/api/ventas", ventaRoutes);
 app.use("/api/movimientos", movimientoRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/configuracion", configuracionRoutes);
+app.use("/api/reportes", reporteRoutes);
+app.use("/api/conteos", conteoRoutes);
 
 module.exports = app;
