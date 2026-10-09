@@ -42,6 +42,19 @@ Mapeo directo del alcance del Acta a la estructura de carpetas:
 | Registro de ventas | ⏳ Pendiente | — | — |
 | Panel de reportes / dashboard | ⏳ Pendiente | — | — |
 
+## Conteo físico de inventario (`/api/conteos`)
+
+Criterio de éxito del acta: diferencia <= 5 % entre existencias del sistema y conteo físico. Solo Administrador (cada endpoint con `authorize("Administrador")`).
+
+- **Modelo** (migración `20261008000000_conteo_fisico`): `conteo_fisico` (cabecera: nombre, fecha, estado, categoría opcional = alcance, quién creó/cerró) y `conteo_detalle` (una fila por SKU: `cantidad_sistema` = stock registrado al contar, `cantidad_contada`, y al aplicar `ajuste`, `cantidad_antes`, `cantidad_despues`).
+- **Estados:** `borrador` -> `aplicado` (cerrado y corrigió Inventario) | `cerrado` (cerrado sin corregir, solo informe) | `cancelado`. Todo estado distinto de `borrador` es final: no se reabre ni se aplica dos veces (cada operación toma `SELECT ... FOR UPDATE` de la fila del conteo y exige `borrador` dentro de la transacción). Solo se pueden borrar borradores/cancelados.
+- **Ajustes positivos:** no se reutilizan `SalidaMaestro/Detalle` (solo restan) ni `CompraMaestro/Detalle` (exigen proveedor y precio). La trazabilidad vive en `conteo_detalle` y `movimientoService` la expone en Movimientos como «Conteo físico» (`categoria: "ajuste"`, `tipo` entrada/salida según el signo, `anulable: false`, antes -> después). No rompe ningún contrato existente (los reportes de mermas/ventas siguen leyendo `salida_*`; el reporte «Conteo físico» cubre las correcciones).
+- **Concurrencia con ventas:** la diferencia se mide contra el stock del sistema *al momento de contar cada SKU* y, al aplicar, se **suma** al stock vigente (`increment`), nunca se reemplaza el stock por lo contado: las ventas hechas durante el conteo se conservan. Si el stock vigente difiere del de conteo en alguna línea con diferencia, el cierre responde `409 CAMBIO_STOCK` con la lista y solo se aplica con `confirmarCambios: true`; si el resultado fuera negativo se rechaza todo (`409 STOCK_NEGATIVO`).
+- **KPI:** exactitud = productos con diferencia 0 / productos contados; diferencia agregada = sum|contado - sistema| / sum(sistema); meta `META_EXACTITUD_PCT = 5` (constante en `conteoService.js`, espejo en `frontend/src/utils/conteo.ts`). Solo cuentan los productos contados; los del alcance sin contar se informan aparte y no se ajustan.
+- **Reporte:** `conteo-fisico` en el catálogo de reportes (filtro `idConteo`, solo Administrador; PDF/Excel/CSV).
+- **Decisión abierta:** el Operador NO puede contar ni ver conteos. Si el negocio quiere conteo en bodega por Operador, habría que abrir solo `PUT /:id/lineas` (sin costos, sin cierre) con un modo "captura" y validar quién puede ver diferencias. No se habilitó.
+- **Límite conocido:** `GET /api/movimientos` filtra `fechaHasta` hasta las 23:59 en la hora del servidor; si el servidor corre en UTC, los movimientos de la noche (después de las 18:00 en Guatemala) del último día del rango aparecen hasta el día siguiente. Afecta a todos los movimientos, no solo a conteos.
+
 ## Fuera de alcance (según Acta)
 
 Facturación FEL/SAT, reportes de servicio a camiones, contabilidad/nómina, app móvil nativa, tienda en línea, integración con proveedores, operación multi-sucursal, soporte post-entrega. No se reserva estructura de carpetas para estos módulos.
