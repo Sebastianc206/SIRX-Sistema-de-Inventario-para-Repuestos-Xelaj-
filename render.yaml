@@ -2,7 +2,8 @@
 # Al conectar este repo en Render ("New +" → "Blueprint"), este archivo
 # crea el Web Service automáticamente con el build/start/migraciones
 # correctos — ver docs/DEPLOYMENT.md para el resto de variables (DATABASE_URL,
-# JWT_SECRET, CORS_ORIGIN, etc.) que Render pide llenar a mano por ser secretas.
+# CORS_ORIGIN, ADMIN_PASSWORD, OPERADOR_PASSWORD) que Render pide llenar a mano.
+# JWT_SECRET lo genera Render solo.
 services:
   - type: web
     name: sirx-backend
@@ -10,7 +11,10 @@ services:
     rootDir: backend
     plan: free
     buildCommand: npm install && npx prisma generate
-    startCommand: npx prisma migrate deploy && npm start
+    # Aplica migraciones (prisma migrate deploy), crea roles/usuarios iniciales
+    # (seed idempotente) y arranca la API. Render no da shell en el plan gratis,
+    # por eso el seed corre aquí.
+    startCommand: npm run start:render
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
@@ -18,7 +22,7 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET
-        sync: false
+        generateValue: true
       - key: JWT_EXPIRES_IN
         value: 30m
       - key: MAX_LOGIN_ATTEMPTS

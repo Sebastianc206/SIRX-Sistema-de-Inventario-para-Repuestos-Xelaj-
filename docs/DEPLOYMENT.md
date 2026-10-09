@@ -25,15 +25,15 @@ HTTPS (T-103) se fuerza a nivel de aplicación (redirección 301 automática de 
 
 ## Archivos de despliegue ya incluidos en el repo
 
-- [`render.yaml`](../render.yaml) (raíz del repo): blueprint de Render para el backend. Al conectar el repo con "New +" → "Blueprint" en Render, crea el Web Service con el build/start correctos automáticamente (`npm install && npx prisma generate` como build, `npx prisma migrate deploy && npm start` como start — las migraciones se aplican solas en cada deploy). Solo hay que rellenar a mano las variables marcadas como secretas (`DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGIN`, `ADMIN_PASSWORD`, `OPERADOR_PASSWORD`).
+- [`render.yaml`](../render.yaml) (raíz del repo): blueprint de Render para el backend. Al conectar el repo con "New +" → "Blueprint" en Render, crea el Web Service con el build/start correctos automáticamente (`npm install && npx prisma generate` como build, `npm run start:render` como start: `prisma migrate deploy` + seed idempotente de roles/usuarios + arranque de la API, así que las migraciones y los usuarios iniciales se aplican solos en cada deploy). `JWT_SECRET` lo genera Render. Solo hay que rellenar `DATABASE_URL`, `CORS_ORIGIN`, `ADMIN_PASSWORD` y `OPERADOR_PASSWORD`.
 - [`frontend/vercel.json`](../frontend/vercel.json): build command y output directory explícitos, más una regla de *rewrite* que manda cualquier ruta a `index.html` — imprescindible porque el frontend usa rutas del lado del cliente (React Router); sin esto, refrescar la página en `/repuestos` (por ejemplo) daría 404.
 
 ## Pasos de despliegue inicial
 
 1. Crear el proyecto en Neon y obtener el `DATABASE_URL`.
-2. En Render: "New +" → "Blueprint", seleccionar este repo (usa `render.yaml` automáticamente). Rellenar las variables de entorno marcadas como secretas y hacer deploy — la migración corre sola en el `startCommand`.
-3. Ejecutar `npm run prisma:seed` una vez (localmente, apuntando el `DATABASE_URL` a Neon, o vía la consola de Render) para crear los usuarios iniciales.
-4. En Vercel: "Add New" → "Project", seleccionar este repo con root directory `frontend/` (usa `vercel.json` automáticamente). Configurar `VITE_API_URL` con la URL pública de Render, deploy.
+2. En Render: "New +" → "Blueprint", seleccionar este repo (usa `render.yaml` automáticamente). Rellenar las variables de entorno marcadas como secretas y hacer deploy y verificar que `https://<servicio>.onrender.com/health` responda `{"status":"ok"}`.
+3. (Ya no hace falta correr el seed a mano: `start:render` lo ejecuta en cada arranque; es idempotente y no pisa contraseñas existentes.) Usar en `DATABASE_URL` la conexión **directa** de Neon (sin `-pooler`), porque `prisma migrate deploy` usa advisory locks que el pooler no soporta.
+4. En Vercel: "Add New" → "Project", seleccionar este repo con root directory `frontend/` (usa `vercel.json` automáticamente). Configurar `VITE_API_URL` con la URL pública de Render, deploy. Después, volver a Render y poner `CORS_ORIGIN` = URL de Vercel (sin `/` final).
 5. Configurar dominio propio (opcional, ver Acta — costo aproximado de Q100/año) apuntando al proyecto de Vercel.
 
 ## Configuración de protección de ramas y CODEOWNERS en GitHub
