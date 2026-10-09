@@ -141,6 +141,8 @@ export interface MovimientoHistorial {
   // endpoint sin adivinar nada a partir de `referencia`.
   id: number;
   anulada: boolean;
+  // false = no se puede anular desde Movimientos (ajuste por conteo físico).
+  anulable?: boolean;
   sku: string;
   nombreProducto?: string;
   fecha: string;
@@ -150,6 +152,9 @@ export interface MovimientoHistorial {
   precioCompra?: number;
   proveedor?: string | null;
   precioVenta?: number;
+  // Solo ajustes por conteo físico: existencia antes y después del ajuste.
+  cantidadAntes?: number | null;
+  cantidadDespues?: number | null;
 }
 
 export interface FiltrosMovimientos {
@@ -195,6 +200,7 @@ export interface AlertaStockBajo {
   nombre: string;
   cantidadInventario: number;
   inventarioMinimo: number;
+  estadoStock?: "agotado" | "bajo" | "en_stock";
 }
 
 export interface ResumenDashboard {

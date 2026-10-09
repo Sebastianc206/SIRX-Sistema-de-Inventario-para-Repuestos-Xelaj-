@@ -129,6 +129,27 @@ describe("Rutas /api/repuestos", () => {
       );
     });
 
+    it("pasa soloConExistencias y orden=existencias (punto de venta) y los ignora si son inválidos", async () => {
+      mockArticuloService.listarArticulos.mockResolvedValue({
+        articulos: [],
+        paginacion: { pagina: 1, porPagina: 20, total: 0, totalPaginas: 1 },
+      });
+
+      await request(app)
+        .get("/api/repuestos?soloConExistencias=true&orden=existencias")
+        .set("Authorization", `Bearer ${token("Operador")}`);
+      expect(mockArticuloService.listarArticulos).toHaveBeenLastCalledWith(
+        expect.objectContaining({ soloConExistencias: true, orden: "existencias", ocultarDatosSensibles: true }),
+      );
+
+      await request(app)
+        .get("/api/repuestos?soloConExistencias=quizas&orden=precio")
+        .set("Authorization", `Bearer ${token("Operador")}`);
+      expect(mockArticuloService.listarArticulos).toHaveBeenLastCalledWith(
+        expect.objectContaining({ soloConExistencias: false, orden: undefined }),
+      );
+    });
+
     it("ignora filtros no numéricos en vez de romper la búsqueda", async () => {
       mockArticuloService.listarArticulos.mockResolvedValue({
         articulos: [],

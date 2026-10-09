@@ -4,8 +4,13 @@ const {
   esTextoOpcionalValido,
   esSkuValido,
   esNumeroPositivo,
-  esEnteroNoNegativo,
 } = require("../utils/validadores");
+const {
+  normalizarUmbralPropio,
+  umbralEfectivo,
+  calcularEstadoStock,
+  obtenerUmbralGeneral,
+} = require("./umbralStockService");
 
 const NOMBRE_MAX_LENGTH = 150;
 const UBICACION_MAX_LENGTH = 100;
@@ -24,12 +29,22 @@ class ArticuloError extends Error {
 // Operador nunca debe recibir, ni en el listado ni en el detalle de un
 // repuesto — se omiten del objeto acá, no se enmascaran con null, para que
 // no quede ni la llave en el JSON de respuesta.
-function formatearArticulo(articulo, { ocultarDatosSensibles }) {
+//
+// Umbral de stock bajo: `inventarioMinimo` en la respuesta es SIEMPRE el
+// umbral efectivo (propio si existe, si no el general) — así los clientes
+// que ya leían ese campo siguen funcionando. `inventarioMinimoPropio` es el
+// valor propio (null = usa el general) y `estadoStock` el estado ya
+// calculado en backend (umbralStockService.js).
+function formatearArticulo(articulo, { ocultarDatosSensibles, umbralGeneral }) {
+  const minimoEfectivo = umbralEfectivo(articulo.inventarioMinimo ?? null, umbralGeneral);
+  const cantidadInventario = articulo.inventario?.cantidad ?? 0;
   const base = {
     sku: articulo.sku,
     nombre: articulo.nombre,
     precioVenta: articulo.precioVenta,
-    inventarioMinimo: articulo.inventarioMinimo,
+    inventarioMinimo: minimoEfectivo,
+    inventarioMinimoPropio: articulo.inventarioMinimo ?? null,
+    estadoStock: calcularEstadoStock(cantidadInventario, minimoEfectivo),
     ubicacion: articulo.ubicacion,
     estado: articulo.estado,
     categoria: articulo.categoria
@@ -40,7 +55,7 @@ function formatearArticulo(articulo, { ocultarDatosSensibles }) {
       idModelo: mc.modelo.idModelo,
       descripcion: mc.modelo.descripcion,
     })),
-    cantidadInventario: articulo.inventario?.cantidad ?? 0,
+    cantidadInventario,
   };
 
   if (ocultarDatosSensibles) {
@@ -63,6 +78,14 @@ const INCLUDE_ARTICULO_COMPLETO = {
   inventario: true,
   modelosCompatibles: { include: { modelo: true } },
 };
+
+function umbralPropioDeEntrada(valor) {
+  try {
+    return normalizarUmbralPropio(valor);
+  } catch (error) {
+    throw new ArticuloError(error.message, 400);
+  }
+}
 
 // T-099: se valida cada campo por separado (no solo "vino algo") y se
 // reutiliza tanto en crear como en editar; en editar cada campo es opcional
@@ -88,10 +111,9 @@ function validarCampos(datos, { requerido }) {
     }
   }
 
-  if (requerido || inventarioMinimo !== undefined) {
-    if (!esEnteroNoNegativo(inventarioMinimo)) {
-      throw new ArticuloError("inventarioMinimo debe ser un entero mayor o igual a 0", 400);
-    }
+  // Opcional: vacío/null = usar el umbral general de stock bajo.
+  if (inventarioMinimo !== undefined) {
+    umbralPropioDeEntrada(inventarioMinimo);
   }
 
   if (!esTextoOpcionalValido(ubicacion, { max: UBICACION_MAX_LENGTH })) {
@@ -143,6 +165,8 @@ async function listarArticulos({
   idCategoria,
   idMarca,
   idModelo,
+  soloConExistencias,
+  orden,
   ocultarDatosSensibles,
 }) {
   const paginaActual = Number.isInteger(pagina) && pagina > 0 ? pagina : PAGINA_POR_DEFECTO;
@@ -164,20 +188,47 @@ async function listarArticulos({
   if (Number.isInteger(idCategoria)) where.idCategoria = idCategoria;
   if (Number.isInteger(idMarca)) where.idMarca = idMarca;
   if (Number.isInteger(idModelo)) where.modelosCompatibles = { some: { idModelo } };
+  // Punto de venta: solo lo que realmente se puede vender ahora.
+  if (soloConExistencias === true) where.inventario = { is: { cantidad: { gt: 0 } } };
 
-  const [total, articulos] = await Promise.all([
-    prisma.articulo.count({ where }),
+  const desde = (paginaActual - 1) * tamanoPagina;
+  const consultar = (filtro, saltar, tomar) =>
     prisma.articulo.findMany({
-      where,
+      where: filtro,
       include: INCLUDE_ARTICULO_COMPLETO,
-      orderBy: { nombre: "asc" },
-      skip: (paginaActual - 1) * tamanoPagina,
-      take: tamanoPagina,
-    }),
+      orderBy: [{ nombre: "asc" }, { sku: "asc" }],
+      skip: saltar,
+      take: tomar,
+    });
+
+  const [total, umbralGeneral] = await Promise.all([
+    prisma.articulo.count({ where }),
+    obtenerUmbralGeneral(),
   ]);
 
+  let articulos;
+  if (orden === "existencias" && soloConExistencias !== true) {
+    // "Con existencias primero": segmento 1 = cantidad > 0, segmento 2 = el
+    // resto (agotados/sin fila de inventario), cada uno por nombre. Se
+    // pagina sobre la concatenación con dos consultas Prisma (sin SQL crudo).
+    const conStock = { AND: [where, { inventario: { is: { cantidad: { gt: 0 } } } }] };
+    const sinStock = { AND: [where, { NOT: { inventario: { is: { cantidad: { gt: 0 } } } } }] };
+    const totalConStock = await prisma.articulo.count({ where: conStock });
+    const partes = [];
+    if (desde < totalConStock) {
+      partes.push(...(await consultar(conStock, desde, tamanoPagina)));
+    }
+    const faltan = tamanoPagina - partes.length;
+    if (faltan > 0) {
+      partes.push(...(await consultar(sinStock, Math.max(0, desde - totalConStock), faltan)));
+    }
+    articulos = partes;
+  } else {
+    articulos = await consultar(where, desde, tamanoPagina);
+  }
+
   return {
-    articulos: articulos.map((a) => formatearArticulo(a, { ocultarDatosSensibles })),
+    articulos: articulos.map((a) => formatearArticulo(a, { ocultarDatosSensibles, umbralGeneral })),
     paginacion: {
       pagina: paginaActual,
       porPagina: tamanoPagina,
@@ -188,16 +239,16 @@ async function listarArticulos({
 }
 
 async function obtenerArticuloPorSku(sku, { ocultarDatosSensibles }) {
-  const articulo = await prisma.articulo.findUnique({
-    where: { sku },
-    include: INCLUDE_ARTICULO_COMPLETO,
-  });
+  const [articulo, umbralGeneral] = await Promise.all([
+    prisma.articulo.findUnique({ where: { sku }, include: INCLUDE_ARTICULO_COMPLETO }),
+    obtenerUmbralGeneral(),
+  ]);
 
   if (!articulo) {
     throw new ArticuloError("Repuesto no encontrado", 404);
   }
 
-  return formatearArticulo(articulo, { ocultarDatosSensibles });
+  return formatearArticulo(articulo, { ocultarDatosSensibles, umbralGeneral });
 }
 
 async function crearArticulo(datos) {
@@ -230,7 +281,7 @@ async function crearArticulo(datos) {
         nombre: datos.nombre.trim(),
         precioVenta: Number(datos.precioVenta),
         precioCosto: Number(datos.precioCosto),
-        inventarioMinimo: Number(datos.inventarioMinimo),
+        inventarioMinimo: umbralPropioDeEntrada(datos.inventarioMinimo),
         ubicacion: ubicacion?.trim() || null,
         idCategoria,
         idMarca: idMarca ?? null,
@@ -269,7 +320,7 @@ async function editarArticulo(sku, datos) {
   if (datos.precioVenta !== undefined) dataActualizada.precioVenta = Number(datos.precioVenta);
   if (datos.precioCosto !== undefined) dataActualizada.precioCosto = Number(datos.precioCosto);
   if (datos.inventarioMinimo !== undefined)
-    dataActualizada.inventarioMinimo = Number(datos.inventarioMinimo);
+    dataActualizada.inventarioMinimo = umbralPropioDeEntrada(datos.inventarioMinimo);
   if (datos.ubicacion !== undefined) dataActualizada.ubicacion = datos.ubicacion?.trim() || null;
   if (idCategoria !== undefined) dataActualizada.idCategoria = idCategoria;
   if (idMarca !== undefined) dataActualizada.idMarca = idMarca;

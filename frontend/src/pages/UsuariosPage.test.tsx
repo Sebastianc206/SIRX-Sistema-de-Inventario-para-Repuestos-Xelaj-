@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { Providers } from "@/test/providers";
 import UsuariosPage from "@/pages/UsuariosPage";
 import { UsuarioApiError } from "@/services/usuarioService";
 import type { UsuarioAdmin } from "@/types/usuario";
@@ -35,7 +35,7 @@ const usuarios: UsuarioAdmin[] = [
 ];
 
 function renderPage() {
-  return render(<UsuariosPage />, { wrapper: MemoryRouter });
+  return render(<UsuariosPage />, { wrapper: Providers });
 }
 
 describe("UsuariosPage", () => {
@@ -94,6 +94,9 @@ describe("UsuariosPage", () => {
     if (!filaAdmin) throw new Error("no se encontró la fila del admin");
 
     await userEvent.click(within(filaAdmin).getByRole("button", { name: /desactivar/i }));
+    const dialogo = screen.getByRole("alertdialog", { name: /¿desactivar esta cuenta\?/i });
+    expect(mockCambiarEstadoUsuario).not.toHaveBeenCalled();
+    await userEvent.click(within(dialogo).getByRole("button", { name: /desactivar cuenta/i }));
 
     expect(mockCambiarEstadoUsuario).toHaveBeenCalledWith(1, false);
     expect(await within(filaAdmin).findByText("Inactivo")).toBeInTheDocument();

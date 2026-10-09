@@ -3,6 +3,8 @@ import type { FormEvent } from "react";
 import { PaisSelect } from "@/components/PaisSelect";
 import { DepartamentoSelect } from "@/components/DepartamentoSelect";
 import { MunicipioSelect } from "@/components/MunicipioSelect";
+import { Alert } from "@/components/ui/Alert";
+import { DialogBody, Drawer, FormFooter } from "@/components/ui/Dialog";
 import { crearProveedor, editarProveedor, ProveedorApiError } from "@/services/proveedorService";
 import type { Proveedor } from "@/types/proveedor";
 
@@ -15,7 +17,6 @@ interface ProveedorFormModalProps {
 
 export function ProveedorFormModal({ proveedor, onClose, onGuardado }: ProveedorFormModalProps) {
   const esEdicion = proveedor !== null;
-  const tituloId = useId();
   const nombreId = useId();
   const direccionId = useId();
   const contactoId = useId();
@@ -30,6 +31,7 @@ export function ProveedorFormModal({ proveedor, onClose, onGuardado }: Proveedor
   const [idMunicipio, setIdMunicipio] = useState<number | undefined>(proveedor?.idMunicipio ?? undefined);
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [modificado, setModificado] = useState(false);
 
   function handleCambiarDepartamento(nuevoIdDepartamento: number | undefined) {
     setIdDepartamento(nuevoIdDepartamento);
@@ -74,37 +76,17 @@ export function ProveedorFormModal({ proveedor, onClose, onGuardado }: Proveedor
   }
 
   return (
-    <div className="modal-overlay" role="presentation" onClick={onClose}>
-      <div
-        className="modal-card"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={tituloId}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2 id={tituloId}>{esEdicion ? "Editar proveedor" : "Nuevo proveedor"}</h2>
-
-        <form onSubmit={handleSubmit}>
+    <Drawer title={esEdicion ? "Editar proveedor" : "Nuevo proveedor"} dirty={modificado && !enviando} onClose={onClose}>
+      <form className="dialog-form" onSubmit={handleSubmit} onChange={() => setModificado(true)}>
+        <DialogBody>
           <div className="login-field">
             <label htmlFor={nombreId}>Nombre</label>
-            <input
-              id={nombreId}
-              value={nombre}
-              onChange={(event) => setNombre(event.target.value)}
-              maxLength={150}
-              autoFocus
-              required
-            />
+            <input id={nombreId} value={nombre} onChange={(event) => setNombre(event.target.value)} maxLength={150} autoFocus required />
           </div>
 
           <div className="login-field">
             <label htmlFor={direccionId}>Dirección (opcional)</label>
-            <input
-              id={direccionId}
-              value={direccion}
-              onChange={(event) => setDireccion(event.target.value)}
-              maxLength={255}
-            />
+            <input id={direccionId} value={direccion} onChange={(event) => setDireccion(event.target.value)} maxLength={255} />
           </div>
 
           <div className="login-field">
@@ -118,31 +100,17 @@ export function ProveedorFormModal({ proveedor, onClose, onGuardado }: Proveedor
             />
           </div>
 
+          <h3 className="form-section-title">Ubicación</h3>
           <PaisSelect value={idPais} onChange={setIdPais} disabled={enviando} />
-          <DepartamentoSelect value={idDepartamento} onChange={handleCambiarDepartamento} disabled={enviando} />
-          <MunicipioSelect
-            value={idMunicipio}
-            onChange={setIdMunicipio}
-            idDepartamento={idDepartamento}
-            disabled={enviando}
-          />
-
-          {error && (
-            <p className="banner banner--error" role="alert">
-              {error}
-            </p>
-          )}
-
-          <div className="modal-actions">
-            <button type="button" className="btn-secondary" onClick={onClose} disabled={enviando}>
-              Cancelar
-            </button>
-            <button type="submit" disabled={enviando}>
-              {enviando ? "Guardando..." : "Guardar"}
-            </button>
+          <div className="form-grid">
+            <DepartamentoSelect value={idDepartamento} onChange={handleCambiarDepartamento} disabled={enviando} />
+            <MunicipioSelect value={idMunicipio} onChange={setIdMunicipio} idDepartamento={idDepartamento} disabled={enviando} />
           </div>
-        </form>
-      </div>
-    </div>
+
+          {error && <Alert tone="error">{error}</Alert>}
+        </DialogBody>
+        <FormFooter enviando={enviando} />
+      </form>
+    </Drawer>
   );
 }

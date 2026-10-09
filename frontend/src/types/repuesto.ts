@@ -7,7 +7,14 @@ export interface Repuesto {
   nombre: string;
   precioVenta: number;
   precioCosto?: number;
+  // Umbral de stock bajo EFECTIVO: el propio del producto si lo tiene, si no
+  // el general fijado por el Administrador (calculado en backend).
   inventarioMinimo: number;
+  // Umbral propio (null = usa el general). Opcional en el tipo por
+  // compatibilidad con respuestas antiguas.
+  inventarioMinimoPropio?: number | null;
+  // Estado calculado por el backend con el umbral efectivo.
+  estadoStock?: "agotado" | "bajo" | "en_stock";
   ubicacion: string | null;
   estado: boolean;
   categoria: { idCategoria: number; descripcion: string } | null;
@@ -22,7 +29,8 @@ export interface RepuestoFormInput {
   nombre: string;
   precioVenta: number;
   precioCosto: number;
-  inventarioMinimo: number;
+  // null/ausente = usar el umbral general de stock bajo.
+  inventarioMinimo?: number | null;
   ubicacion?: string;
   idCategoria: number;
   idMarca?: number;
@@ -55,6 +63,9 @@ export interface FiltrosRepuestos {
   idCategoria?: number;
   idMarca?: number;
   idModelo?: number;
+  // Punto de venta: solo con existencias, y con existencias primero.
+  soloConExistencias?: boolean;
+  orden?: "existencias";
 }
 
 // HU-05: resumen que devuelve la carga masiva — filas exitosas y filas con

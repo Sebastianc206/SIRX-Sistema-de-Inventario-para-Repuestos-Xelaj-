@@ -1,25 +1,40 @@
 const prisma = require("../utils/prismaClient");
+const {
+  umbralEfectivo,
+  calcularEstadoStock,
+  obtenerUmbralGeneral,
+} = require("./umbralStockService");
 
 const ID_TIPO_SALIDA_VENTA = 1;
 
 // HU-12: un repuesto tiene alerta de stock bajo cuando su existencia ya
-// llegó a (o quedó por debajo de) su inventarioMinimo — mismo mapeo que la
-// UI de catálogo (CONTEXTO_SIRX.md §8): "Stock bajo" = 0 < cantidad <=
-// mínimo, "Agotado" = cantidad = 0. Acá se cuentan ambos como alerta.
+// llegó a (o quedó por debajo de) su umbral efectivo — el del producto si
+// lo tiene, si no el general configurado por el Administrador (ver
+// umbralStockService.js, única fuente de la regla). "Stock bajo" = 0 <
+// cantidad <= umbral, "Agotado" = cantidad = 0. Acá se cuentan ambos como
+// alerta. `inventarioMinimo` en cada alerta es el umbral efectivo.
 async function listarAlertasStockBajo() {
-  const articulos = await prisma.articulo.findMany({
-    where: { estado: true },
-    include: { inventario: true },
-  });
+  const [articulos, umbralGeneral] = await Promise.all([
+    prisma.articulo.findMany({
+      where: { estado: true },
+      include: { inventario: true },
+    }),
+    obtenerUmbralGeneral(),
+  ]);
 
   return articulos
-    .filter((a) => (a.inventario?.cantidad ?? 0) <= a.inventarioMinimo)
-    .map((a) => ({
-      sku: a.sku,
-      nombre: a.nombre,
-      cantidadInventario: a.inventario?.cantidad ?? 0,
-      inventarioMinimo: a.inventarioMinimo,
-    }))
+    .map((a) => {
+      const cantidadInventario = a.inventario?.cantidad ?? 0;
+      const minimo = umbralEfectivo(a.inventarioMinimo ?? null, umbralGeneral);
+      return {
+        sku: a.sku,
+        nombre: a.nombre,
+        cantidadInventario,
+        inventarioMinimo: minimo,
+        estadoStock: calcularEstadoStock(cantidadInventario, minimo),
+      };
+    })
+    .filter((a) => a.estadoStock !== "en_stock")
     .sort((a, b) => a.cantidadInventario - b.cantidadInventario);
 }
 

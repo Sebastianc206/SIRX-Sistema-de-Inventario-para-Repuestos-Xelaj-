@@ -1,0 +1,167 @@
+/* =====================================================================
+   SIRX — tokens de diseño (fuente de verdad). Ningún componente usa hex
+   crudos: todo pasa por estas variables. Texto >= 4.5:1, objetivos >= 44px.
+   ===================================================================== */
+:root {
+  /* --- Color de marca: verde esmeralda oscuro (el nombre --pino se conserva
+     para no tocar componentes). 600 es la base (botones, enlaces, activos);
+     800/900 para superficies oscuras (sidebar). Blanco sobre 600 ≈ 6.2:1. --- */
+  --pino-100: #e3f4ec;
+  --pino-200: #bde5d2;
+  --pino-300: #8dd1b2;
+  --pino-400: #4fb68c;
+  --pino-500: #1b9470;
+  --pino-600: #0b6e4f;
+  --pino-700: #095840;
+  --pino-800: #07422f;
+  --pino-900: #052a1e;
+
+  --color-primary-50: var(--pino-100);
+  --color-primary-100: var(--pino-200);
+  --color-primary-500: var(--pino-500);
+  --color-primary-600: var(--pino-600);
+  --color-primary-700: var(--pino-700);
+
+  /* Acento cálido (ámbar/latón) para detalles de marca: nunca como texto
+     pequeño sobre claro. */
+  --color-accent: #c9972f;
+
+  /* --- Neutros cálidos: papel y tinta --- */
+  --neutro-superficie: #ffffff;
+  --neutro-papel: #f4f5f1;
+  --neutro-200: #e9ebe4;
+  --neutro-300-borde: #d3d6cc;
+  --neutro-400: #a3a79b;
+  --neutro-500: #5d6258; /* texto tenue: 5.9:1 sobre papel */
+  --neutro-600-texto-tenue: #474b43;
+  --neutro-700: #353831;
+  --tinta-900: #171a16;
+
+  --color-neutral-0: var(--neutro-superficie);
+  --color-neutral-50: var(--neutro-papel);
+  --color-neutral-100: var(--neutro-200);
+  --color-neutral-200: var(--neutro-200);
+  --color-neutral-300: var(--neutro-300-borde);
+  --color-neutral-400: var(--neutro-400);
+  --color-neutral-500: var(--neutro-500);
+  --color-neutral-600: var(--neutro-600-texto-tenue);
+  --color-neutral-700: var(--neutro-700);
+  --color-neutral-900: var(--tinta-900);
+
+  /* --- Estados de stock (CONTEXTO_SIRX.md §8): relleno claro + tinta
+     oscura (>= 4.5:1). El badge añade un punto + texto: nunca solo color. --- */
+  --stock-en-stock-bg: #dff0e6;
+  --stock-en-stock-mid: #2f7a58;
+  --stock-en-stock-text: #124a31;
+
+  --stock-bajo-bg: #fbecc8;
+  --stock-bajo-mid: #c08a2e;
+  --stock-bajo-text: #6a4608;
+
+  --stock-agotado-bg: #f8dfda;
+  --stock-agotado-mid: #b4402f;
+  --stock-agotado-text: #7a2519;
+
+  --stock-transito-bg: #dbeaf3;
+  --stock-transito-mid: #2f6d8f;
+  --stock-transito-text: #1b4560;
+
+  /* --- Semánticos (bg / fg / border) --- */
+  --color-error-bg: var(--stock-agotado-bg);
+  --color-error-fg: var(--stock-agotado-text);
+  --color-error-border: var(--stock-agotado-mid);
+  --color-warning-bg: var(--stock-bajo-bg);
+  --color-warning-fg: var(--stock-bajo-text);
+  --color-warning-border: var(--stock-bajo-mid);
+  --color-info-bg: var(--stock-transito-bg);
+  --color-info-fg: var(--stock-transito-text);
+  --color-info-border: var(--stock-transito-mid);
+  --color-success-bg: var(--stock-en-stock-bg);
+  --color-success-fg: var(--stock-en-stock-text);
+  --color-success-border: var(--stock-en-stock-mid);
+  --color-danger-solid: #9b2c1f;
+  --color-danger-solid-hover: #7f2217;
+
+  /* --- Interacción --- */
+  --focus-ring: 0 0 0 3px rgba(52, 119, 94, 0.35);
+  --focus-outline: 2px solid var(--pino-500);
+  --target: 2.75rem; /* 44px */
+  --overlay: rgba(5, 42, 30, 0.55);
+
+  /* --- Tipografía: Barlow (rotulación técnica/automotriz) para títulos y
+     cifras grandes; Inter para UI y tablas densas. --- */
+  --font-sans:
+    "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Barlow", var(--font-sans);
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.625rem;
+  --text-2xl: 2.125rem;
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+
+  /* --- Espaciado (base 4px) --- */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+
+  /* --- Radio / elevación / movimiento --- */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --shadow-card:
+    0 1px 2px rgba(5, 42, 30, 0.06), 0 4px 14px rgba(5, 42, 30, 0.06);
+  --shadow-pop:
+    0 8px 30px rgba(5, 42, 30, 0.18), 0 2px 6px rgba(5, 42, 30, 0.1);
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --dur-fast: 150ms;
+  --dur-base: 220ms;
+
+  font-family: var(--font-sans);
+  color: var(--color-neutral-900);
+  color-scheme: light;
+}
+
+/* --- Tokens de layout / capas (shell, overlays) --- */
+:root {
+  --sidebar-w: 15.5rem;
+  --rail-w: 4.5rem;
+  --topbar-h: 3.75rem;
+  --page-max: 80rem;
+  --shadow-sm: 0 1px 2px rgba(5, 42, 30, 0.08);
+  --z-sidebar: 40;
+  --z-topbar: 30;
+  --z-overlay: 100;
+  --z-toast: 200;
+  --z-tooltip: 300;
+  --dur-slow: 320ms;
+  --focus-on-dark: 2px solid var(--color-accent);
+  --row-h: 3.25rem;
+  --row-h-compact: 2.5rem;
+  --surface-sidebar: var(--pino-900);
+  --text-on-dark: #dcebe3;
+  --text-on-dark-muted: #a9c7b8;
+}
+
+/* --- Login: lienzo y panel de marca (único lugar donde hay degradado) --- */
+:root {
+  --login-lienzo: #eef3f0; /* gris-verdoso claro detrás de la tarjeta */
+  --login-bosque: #073c30; /* verde bosque del panel de marca */
+  --login-bosque-profundo: #04271f;
+  --login-luz: rgba(22, 135, 95, 0.49); /* luz esmeralda, esquina inferior izquierda */
+  --login-aro: rgba(225, 251, 237, 0.07); /* aros concéntricos tenues */
+  --login-menta: #a7e6c6; /* segunda frase del titular: 11:1 sobre el bosque */
+  --login-pill-fondo: rgba(255, 255, 255, 0.055);
+  --login-pill-borde: rgba(196, 235, 215, 0.22);
+  --login-filete: rgba(209, 241, 224, 0.15);
+  --login-sombra: 0 30px 85px rgba(13, 53, 39, 0.105), 0 2px 12px rgba(13, 53, 39, 0.03);
+}

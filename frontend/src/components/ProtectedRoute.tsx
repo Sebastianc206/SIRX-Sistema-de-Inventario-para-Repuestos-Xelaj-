@@ -1,19 +1,30 @@
 import type { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/hooks/useAuth";
 
 interface ProtectedRouteProps {
-  children: ReactNode;
+  // Sin children actúa como ruta de layout y renderiza <Outlet />.
+  children?: ReactNode;
   // Si se indica, solo esos roles pueden ver la ruta; el resto se redirige
   // al dashboard (no a /login, ya que sí tienen sesión válida).
   roles?: string[];
 }
 
+// Conveniencia de UX: la frontera de seguridad real es la API (cada endpoint
+// valida el rol con authorize()). Esto solo evita mostrar pantallas que el
+// backend rechazaría igualmente.
 export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
   const { usuario, cargando } = useAuth();
 
   if (cargando) {
-    return <p>Cargando...</p>;
+    return (
+      <div className="page-loading" role="status" aria-busy="true">
+        <span className="sr-only">Cargando...</span>
+        <Skeleton width="14rem" height="2rem" />
+        <Skeleton height="10rem" />
+      </div>
+    );
   }
 
   if (!usuario) {
@@ -24,5 +35,5 @@ export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
     return <Navigate to="/" replace />;
   }
 
-  return <>{children}</>;
+  return <>{children ?? <Outlet />}</>;
 }

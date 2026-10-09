@@ -1,0 +1,399 @@
+/* Comparación de ventas + dropdowns multi-selección + combobox de repuesto (MovimientosPage, líneas de compra/venta/ajuste). */
+/* ---------- Comparación de ventas entre productos (MovimientosPage) ---------- */
+
+.comparacion-layout {
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .comparacion-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.comparacion-checklist-swatch {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.comparacion-grafica svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.comparacion-grafica-grid {
+  stroke: var(--color-neutral-200);
+  stroke-width: 1;
+}
+
+.comparacion-grafica-eje-linea {
+  stroke: var(--color-neutral-300);
+  stroke-width: 1;
+}
+
+.comparacion-grafica-eje {
+  font-size: 10px;
+  fill: var(--color-neutral-500);
+}
+
+.comparacion-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin: var(--space-md) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.comparacion-leyenda-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  font-family: inherit;
+  color: var(--color-neutral-700);
+  background: var(--color-neutral-0);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.comparacion-leyenda-item--activa {
+  border-color: var(--color-primary-500);
+  background: var(--color-primary-50);
+  color: var(--color-primary-700);
+}
+
+.comparacion-leyenda-swatch {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.comparacion-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.comparacion-panel-titulo {
+  margin: 0 0 var(--space-xs);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-neutral-500);
+}
+
+.comparacion-panel-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: var(--space-sm);
+  background: var(--color-neutral-50);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+}
+
+.comparacion-panel-item--activa {
+  background: var(--pino-100);
+  border-color: var(--pino-300);
+}
+
+.comparacion-panel-item-nombre {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--color-neutral-700);
+}
+
+.comparacion-panel-item-total {
+  font-family: var(--font-sans);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-neutral-900);
+}
+/* ---------- Dropdown de selección múltiple de producto (MovimientosPage) ---------- */
+
+.producto-dropdown {
+  position: relative;
+}
+
+.producto-dropdown-boton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: 0.4rem var(--space-sm);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  color: var(--color-neutral-900);
+  background: var(--color-neutral-0);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.producto-dropdown-boton:hover {
+  border-color: var(--pino-500);
+}
+
+.producto-dropdown-panel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: max(100%, 260px);
+  max-height: 320px;
+  overflow-y: auto;
+  padding: var(--space-sm);
+  background: var(--color-neutral-0);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+/* .admin-filtros label (flex-direction: column) tiene (0,1,1) de
+   especificidad y le gana a .producto-dropdown-item sola (0,1,0), así que
+   el checkbox terminaba apilado arriba del texto en vez de a la izquierda
+   — de ahí el selector compuesto acá, que sube la especificidad a (0,2,1). */
+.producto-dropdown-panel .producto-dropdown-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0.35rem var(--space-xs);
+  font-size: var(--text-sm);
+  color: var(--color-neutral-900);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+/* El checkbox no debe estirarse ni encogerse — de lo contrario roba el
+   ancho que necesita el texto para no cortarse. */
+.producto-dropdown-item input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  min-width: 0;
+}
+
+/* El texto sí necesita poder partir línea con nombres largos de producto —
+   sin esto es lo que desbordaba el panel angosto y disparaba el scroll
+   horizontal que lo recortaba. */
+.producto-dropdown-item {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.producto-dropdown-item:hover {
+  background: var(--color-neutral-50);
+}
+
+.producto-dropdown-item--todas {
+  border-bottom: 1px solid var(--color-neutral-200);
+  margin-bottom: 0.15rem;
+  padding-bottom: 0.5rem;
+  font-weight: var(--font-medium);
+}
+
+.producto-dropdown-limite {
+  margin: 0 0 var(--space-xs);
+}
+
+/* ---------- Combobox de búsqueda de repuesto (compras/ventas/ajustes/movimientos) ---------- */
+
+.combobox {
+  position: relative;
+  width: 100%;
+}
+
+.combobox-input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.4rem var(--space-sm);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  color: var(--color-neutral-900);
+  background: var(--color-neutral-0);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.combobox-input::placeholder {
+  color: var(--color-neutral-500);
+}
+
+.combobox-input:focus-visible {
+  outline: none;
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 3px var(--color-primary-100);
+}
+
+.combobox-input:disabled {
+  color: var(--color-neutral-500);
+  background: var(--color-neutral-50);
+  cursor: not-allowed;
+}
+
+/* position/top/left/width los fija RepuestoSkuSelect.tsx inline (con
+   coordenadas reales del input) porque la lista se monta en un portal a
+   document.body — position:fixed es lo que le permite flotar por encima
+   del overflow:auto de .lineas-tabla-wrap en vez de quedar recortada. */
+.combobox-lista {
+  z-index: 20;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 0;
+  padding: var(--space-xs) 0;
+  list-style: none;
+  background: var(--color-neutral-0);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+}
+
+.combobox-opcion {
+  padding: 0.45rem var(--space-sm);
+  font-size: var(--text-sm);
+  color: var(--color-neutral-900);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.combobox-opcion--activa {
+  background: var(--pino-100);
+  color: var(--pino-800);
+}
+
+.combobox-opcion-sku {
+  color: var(--color-neutral-500);
+  font-size: var(--text-xs);
+}
+
+.combobox-mensaje {
+  padding: 0.5rem var(--space-sm);
+  font-size: var(--text-sm);
+  color: var(--color-neutral-500);
+}
+
+
+
+/* =====================================================================
+   CAPA DE REFINAMIENTO UI/UX (sistema de diseño SIRX)
+   Va al final a propósito: unifica foco, objetivos táctiles, tablas,
+   modales, formularios, sidebar responsive y estados sin tocar la lógica.
+   ===================================================================== */
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-neutral-50);
+  color: var(--color-neutral-900);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+.sidebar-brand-name {
+  font-family: var(--font-display);
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+
+.admin-tabla td,
+.admin-tabla th,
+.kpi-card-valor,
+.lineas-total,
+.repuesto-stock-valor {
+  font-variant-numeric: tabular-nums;
+}
+
+
+.producto-dropdown-panel,
+.combobox-lista {
+  box-shadow: var(--shadow-pop);
+}
+
+.combobox-opcion {
+  display: flex;
+  align-items: center;
+  min-height: 2.5rem;
+}
+
+.comparacion-grafica-eje {
+  font-size: 11px;
+}
+
+/* ---------- Alineación con el sistema de controles (44px, 16px, foco) ---------- */
+
+.producto-dropdown-boton {
+  min-height: var(--target);
+  padding: 0 0.75rem;
+  font-size: var(--text-base);
+  font-weight: var(--font-normal);
+  border-color: var(--color-neutral-400);
+}
+
+.producto-dropdown-boton[aria-expanded="true"] {
+  border-color: var(--pino-500);
+  box-shadow: var(--focus-ring);
+}
+
+.producto-dropdown-panel {
+  z-index: 60;
+}
+
+.producto-dropdown-panel .producto-dropdown-item {
+  min-height: var(--target);
+}
+
+.combobox-input {
+  min-height: var(--target);
+  padding: 0 0.75rem;
+  font-size: var(--text-base);
+  border-color: var(--color-neutral-400);
+}
+
+.combobox-lista {
+  z-index: 60;
+}
+
+.combobox-opcion {
+  min-height: var(--target);
+}
+
+.comparacion-layout {
+  display: grid;
+  gap: var(--space-lg);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 900px) {
+  .comparacion-layout {
+    grid-template-columns: 1fr 13rem;
+  }
+}

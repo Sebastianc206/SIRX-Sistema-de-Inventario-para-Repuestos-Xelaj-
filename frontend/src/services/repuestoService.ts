@@ -52,6 +52,8 @@ export async function listarRepuestos(filtros: FiltrosRepuestos = {}): Promise<L
   if (filtros.idCategoria) params.set("idCategoria", String(filtros.idCategoria));
   if (filtros.idMarca) params.set("idMarca", String(filtros.idMarca));
   if (filtros.idModelo) params.set("idModelo", String(filtros.idModelo));
+  if (filtros.soloConExistencias) params.set("soloConExistencias", "true");
+  if (filtros.orden) params.set("orden", filtros.orden);
 
   const response = await fetch(`${API_URL}/api/repuestos?${params.toString()}`, {
     headers: authHeaders(),

@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/brand/logo-rx.png" alt="SIRX · Repuestos Xelajú" width="180"></p>
+
 # SIRX — Sistema de Inventario para Repuestos Xelajú
 
 Aplicación web para que **Repuestos Xelajú** controle su inventario de repuestos automotrices, registre ventas y obtenga información oportuna para decisiones de reabastecimiento, sustituyendo el control manual en papel.

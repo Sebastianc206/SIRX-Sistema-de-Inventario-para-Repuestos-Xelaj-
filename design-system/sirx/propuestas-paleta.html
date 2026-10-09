@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SIRX · Propuestas de paleta verde</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --papel:#f4f5f1; --superficie:#fff; --borde:#d3d6cc; --tinta:#1e1d1a; --tenue:#5d6258;
+    --laton:#b8893a;
+    --ok-bg:#dff0e6; --ok-tx:#124a31;
+    --bajo-bg:#fbecc8; --bajo-tx:#6a4608;
+    --ago-bg:#f8dfda; --ago-tx:#7a2519;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#eceee8;color:var(--tinta);font:15px/1.5 Inter,system-ui,sans-serif}
+  h1,h2,h3{font-family:Barlow,Inter,sans-serif;font-weight:600;margin:0}
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 64px}
+  header.top h1{font-size:28px}
+  header.top p{color:var(--tenue);margin:6px 0 0;max-width:68ch}
+  .bar{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 14px;align-items:center}
+  .bar button{font:500 14px Inter;padding:9px 14px;border-radius:8px;border:1px solid var(--borde);background:#fff;color:var(--tinta);cursor:pointer;min-height:40px}
+  .bar button[aria-pressed="true"]{background:var(--tinta);color:#fff;border-color:var(--tinta)}
+  .bar .sep{flex:1}
+  .bar button:focus-visible{outline:3px solid #2b6cb0;outline-offset:2px}
+
+  /* ---------- paletas ---------- */
+  [data-pal="actual"]{--p100:#e8f1ec;--p200:#c3dccf;--p300:#94bfa9;--p400:#5f9c82;--p500:#34775e;--p600:#1f5a45;--p700:#164535;--p800:#0f3226;--p900:#0a2219}
+  [data-pal="a"]{--p100:#e4f3ec;--p200:#bfe3d1;--p300:#8fd0b3;--p400:#4fb08b;--p500:#1c8f6a;--p600:#0f6b4f;--p700:#0b5640;--p800:#08402f;--p900:#06251c}
+  [data-pal="b"]{--p100:#e6f1e4;--p200:#c5e0c0;--p300:#a3cf9c;--p400:#74b07a;--p500:#4a8f4f;--p600:#2d6a35;--p700:#22542a;--p800:#183d1e;--p900:#0f2a15}
+  [data-pal="c"]{--p100:#e0f1ed;--p200:#b6e0d6;--p300:#8ccfc1;--p400:#4fb2a0;--p500:#17907a;--p600:#0e6655;--p700:#0a5143;--p800:#083c32;--p900:#062520}
+
+  /* ---------- maqueta de la app ---------- */
+  .cap{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:0 0 8px}
+  .cap h2{font-size:20px}
+  .cap span{color:var(--tenue);font-size:13px}
+  .app{display:grid;grid-template-columns:176px minmax(0,1fr);border:1px solid var(--borde);border-radius:12px;overflow:hidden;background:var(--papel);min-height:430px}
+  .sb{background:var(--p900);color:#d7e6dd;padding:14px 10px;display:flex;flex-direction:column;gap:2px}
+  .sb .brand{font:600 17px Barlow;color:#fff;padding:4px 8px 14px;letter-spacing:.2px}
+  .sb .brand small{display:block;font:400 11px Inter;color:var(--p300);letter-spacing:0}
+  .sb a{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:7px;font-size:13px;color:#c9dcd1;text-decoration:none}
+  .sb a i{width:14px;height:14px;border-radius:4px;border:1.5px solid currentColor;opacity:.8;flex:none}
+  .sb a.on{background:rgba(255,255,255,.1);color:#fff;box-shadow:inset 3px 0 0 var(--laton)}
+  .sb .grp{margin-top:auto;font-size:11px;color:var(--p300);padding:10px 9px 2px}
+  .mn{padding:14px 16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+  .tb{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .tb h3{font-size:19px}
+  .tb .acts{display:flex;gap:8px;align-items:center}
+  .btn{font:500 13px Inter;padding:8px 13px;border-radius:7px;border:1px solid transparent;min-height:36px;cursor:default}
+  .btn.pri{background:var(--p600);color:#fff}
+  .btn.pri:hover{background:var(--p700)}
+  .btn.sec{background:#fff;border-color:var(--borde);color:var(--tinta)}
+  .kpis{display:flex;background:#fff;border:1px solid var(--borde);border-radius:9px}
+  .kpis div{flex:1;padding:10px 14px;border-right:1px solid var(--borde)}
+  .kpis div:last-child{border:0}
+  .kpis small{display:block;font-size:12px;color:var(--tenue)}
+  .kpis b{font:600 22px Inter;font-variant-numeric:tabular-nums}
+  .kpis b.v{color:var(--p600)}
+  .cols{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:12px}
+  .card{background:#fff;border:1px solid var(--borde);border-radius:9px;padding:10px 12px;min-width:0}
+  .card h4{margin:0 0 8px;font:600 13px Inter}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{background:var(--p100);color:var(--p800);text-align:left;font-weight:600;padding:6px 8px;font-size:11.5px}
+  td{padding:7px 8px;border-top:1px solid #e9ebe4;font-variant-numeric:tabular-nums}
+  td.r,th.r{text-align:right}
+  .bg{display:inline-block;font-size:11px;font-weight:500;padding:1px 8px;border-radius:99px}
+  .bg.ok{background:var(--ok-bg);color:var(--ok-tx)}
+  .bg.bajo{background:var(--bajo-bg);color:var(--bajo-tx)}
+  .bg.ago{background:var(--ago-bg);color:var(--ago-tx)}
+  .bars{display:flex;align-items:flex-end;gap:5px;height:92px}
+  .bars i{flex:1;background:var(--p500);border-radius:3px 3px 0 0}
+  .bars i:nth-child(odd){background:var(--p600)}
+  .bars i.hi{background:var(--laton)}
+  .lnk{color:var(--p600);font-weight:500}
+  .focus{display:inline-block;margin-top:8px;font-size:12px;padding:5px 9px;border-radius:6px;border:1px solid var(--p400);box-shadow:0 0 0 3px var(--p200);background:#fff}
+
+  /* ---------- muestras y contraste ---------- */
+  .sw{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;margin:12px 0 4px}
+  .sw div{height:46px;border-radius:6px;display:flex;align-items:flex-end;padding:3px 5px;font:500 10px Inter}
+  .nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;margin:10px 0 0}
+  .nums div{background:#fff;border:1px solid var(--borde);border-radius:8px;padding:8px 10px;font-size:12.5px}
+  .nums b{display:block;font-size:15px}
+  .pass{color:#124a31} .fail{color:#7a2519}
+  .grid4{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+  .grid4 .app{grid-template-columns:120px minmax(0,1fr);min-height:0}
+  .grid4 .cols{grid-template-columns:1fr}
+  .grid4 .kpis b{font-size:18px}
+  .note{background:#fff;border:1px solid var(--borde);border-radius:10px;padding:14px 16px;margin-top:22px;font-size:14px}
+  .note h3{font-size:16px;margin-bottom:6px}
+  .note ul{margin:6px 0 0 18px;padding:0}
+  .hide{display:none}
+  @media (max-width:820px){
+    .app{grid-template-columns:1fr}.sb{flex-direction:row;flex-wrap:wrap}.sb .grp{display:none}
+    .grid4{grid-template-columns:1fr}.cols{grid-template-columns:1fr}.sw{grid-template-columns:repeat(5,1fr)}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>SIRX · Propuestas de paleta verde</h1>
+    <p>Archivo de comparación: no cambia nada en la aplicación. Elige una propuesta o usa «Comparar las 4» para verlas juntas. Los datos de la maqueta son de ejemplo; los ratios de contraste se calculan en esta página.</p>
+  </header>
+
+  <div class="bar" role="group" aria-label="Elegir paleta">
+    <button data-pick="actual" aria-pressed="true">Actual · pino</button>
+    <button data-pick="a" aria-pressed="false">A · Esmeralda</button>
+    <button data-pick="b" aria-pressed="false">B · Bosque</button>
+    <button data-pick="c" aria-pressed="false">C · Jade</button>
+    <span class="sep"></span>
+    <button data-pick="todas" aria-pressed="false">Comparar las 4</button>
+  </div>
+
+  <section id="uno">
+    <div class="cap"><h2 id="tit">Actual · pino</h2><span id="sub"></span></div>
+    <div id="stage"></div>
+    <div class="sw" id="sw"></div>
+    <div class="nums" id="nums"></div>
+  </section>
+
+  <section id="todas" class="hide">
+    <div class="grid4" id="grid4"></div>
+  </section>
+
+  <div class="note">
+    <h3>Qué cambia y qué no con cualquier opción</h3>
+    <ul>
+      <li>Cambian los 9 tonos <code>--pino-100…900</code> en <code>frontend/src/styles/tokens.css</code>; los componentes ya usan esos tokens, así que no hay que tocar pantalla por pantalla.</li>
+      <li>El color <b>latón</b> (<span style="color:#b8893a">#b8893a</span>) se mantiene como único acento secundario: marca del ítem activo del menú y un dato destacado.</li>
+      <li>Los colores de estado (en stock, stock bajo, agotado, en tránsito) no cambian: siguen siendo semánticos y no compiten con el color de marca.</li>
+      <li>El botón principal usa el tono 600; el menú lateral, el 900; cabeceras de tabla y fondos suaves, 100.</li>
+    </ul>
+  </div>
+</div>
+
+<template id="mock">
+  <div class="app">
+    <nav class="sb" aria-label="Menú de ejemplo">
+      <div class="brand">SIRX<small>Repuestos Xelajú</small></div>
+      <a class="on" href="#"><i></i>Inicio</a>
+      <a href="#"><i></i>Ventas</a>
+      <a href="#"><i></i>Repuestos</a>
+      <a href="#"><i></i>Reportes</a>
+      <div class="grp">Gestión</div>
+      <a href="#"><i></i>Compras</a>
+    </nav>
+    <div class="mn">
+      <div class="tb"><h3>Inicio</h3><div class="acts"><span class="btn sec">Actualizar</span><span class="btn pri">Nueva venta</span></div></div>
+      <div class="kpis">
+        <div><small>Ventas de hoy</small><b class="v">Q5,413</b></div>
+        <div><small>Alertas de stock</small><b>32</b></div>
+        <div><small>Agotados</small><b>12</b></div>
+      </div>
+      <div class="cols">
+        <div class="card">
+          <h4>Alertas de stock</h4>
+          <table>
+            <tr><th>Repuesto</th><th class="r">Stock</th><th>Estado</th></tr>
+            <tr><td><span class="lnk">FIL-100</span> Filtro de aceite</td><td class="r">3</td><td><span class="bg bajo">Stock bajo</span></td></tr>
+            <tr><td><span class="lnk">FRE-3001</span> Pastillas delanteras</td><td class="r">0</td><td><span class="bg ago">Agotado</span></td></tr>
+            <tr><td><span class="lnk">LUB-100</span> Aceite 5W-30</td><td class="r">12</td><td><span class="bg ok">En stock</span></td></tr>
+          </table>
+          <span class="focus">Campo con foco de teclado</span>
+        </div>
+        <div class="card">
+          <h4>Ventas, últimos 14 días</h4>
+          <div class="bars"><i style="height:38%"></i><i style="height:55%"></i><i style="height:48%"></i><i style="height:72%"></i><i style="height:60%"></i><i style="height:82%"></i><i class="hi" style="height:100%"></i><i style="height:66%"></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+const PALS = {
+  actual:{n:'Actual · pino', d:'Base #1f5a45. Verde apagado, con algo de gris.'},
+  a:{n:'A · Esmeralda profundo', d:'Más saturado y vivo; sigue siendo oscuro.'},
+  b:{n:'B · Verde bosque', d:'Más cálido y natural, tira a hoja.'},
+  c:{n:'C · Jade botella', d:'Verde azulado, más frío y moderno.'}
+};
+const STOPS=[100,200,300,400,500,600,700,800,900];
+const tpl=document.getElementById('mock');
+function mock(p){const w=document.createElement('div');w.setAttribute('data-pal',p);w.appendChild(tpl.content.cloneNode(true));return w}
+function hex2rgb(h){h=h.trim().replace('#','');return [0,2,4].map(i=>parseInt(h.substr(i,2),16))}
+function lum(rgb){const f=c=>{c/=255;return c<=.03928?c/12.92:Math.pow((c+.055)/1.055,2.4)};return .2126*f(rgb[0])+.7152*f(rgb[1])+.0722*f(rgb[2])}
+function ratio(a,b){const A=lum(hex2rgb(a)),B=lum(hex2rgb(b));const hi=Math.max(A,B),lo=Math.min(A,B);return (hi+.05)/(lo+.05)}
+function vars(p){const probe=mock(p);document.body.appendChild(probe);probe.style.display='none';const cs=getComputedStyle(probe);const o={};STOPS.forEach(s=>o[s]=cs.getPropertyValue('--p'+s).trim());probe.remove();return o}
+function row(label,r,min){const ok=r>=min;return `<div>${label}<b class="${ok?'pass':'fail'}">${r.toFixed(1)}:1 ${ok?'cumple':'no cumple'} (mín. ${min}:1)</b></div>`}
+function show(p){
+  document.querySelectorAll('[data-pick]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.pick===p));
+  const uno=document.getElementById('uno'),todas=document.getElementById('todas');
+  if(p==='todas'){uno.classList.add('hide');todas.classList.remove('hide');
+    const g=document.getElementById('grid4');g.innerHTML='';
+    ['actual','a','b','c'].forEach(k=>{const box=document.createElement('div');box.innerHTML=`<div class="cap"><h2>${PALS[k].n}</h2></div>`;box.appendChild(mock(k));g.appendChild(box)});
+    return}
+  todas.classList.add('hide');uno.classList.remove('hide');
+  document.getElementById('tit').textContent=PALS[p].n;document.getElementById('sub').textContent=PALS[p].d;
+  const st=document.getElementById('stage');st.innerHTML='';st.appendChild(mock(p));
+  const v=vars(p);
+  document.getElementById('sw').innerHTML=STOPS.map(s=>{const dark=s>=500;return `<div style="background:${v[s]};color:${dark?'#fff':'#1e1d1a'}">${s}<br>${v[s]}</div>`}).join('');
+  document.getElementById('nums').innerHTML=
+    row('Botón principal: blanco sobre 600',ratio('#ffffff',v[600]),4.5)+
+    row('Botón al pasar el cursor: blanco sobre 700',ratio('#ffffff',v[700]),4.5)+
+    row('Enlaces: 600 sobre papel #f4f5f1',ratio(v[600],'#f4f5f1'),4.5)+
+    row('Cabecera de tabla: 800 sobre 100',ratio(v[800],v[100]),4.5)+
+    row('Menú: texto claro #c9dcd1 sobre 900',ratio('#c9dcd1',v[900]),4.5)+
+    row('Ítem activo del menú: blanco sobre 900',ratio('#ffffff',v[900]),4.5);
+}
+document.querySelectorAll('[data-pick]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.pick)));
+show('actual');
+</script>
+</body>
+</html>

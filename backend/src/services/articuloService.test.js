@@ -5,6 +5,7 @@ jest.mock("../utils/prismaClient", () => ({
     count: jest.fn(),
     update: jest.fn(),
   },
+  configuracion: { findUnique: jest.fn() },
   categoria: { findUnique: jest.fn(), findFirst: jest.fn() },
   marca: { findUnique: jest.fn(), findFirst: jest.fn() },
   proveedor: { findUnique: jest.fn(), findFirst: jest.fn() },
@@ -67,6 +68,48 @@ describe("articuloService", () => {
         }),
       );
       expect(resultado.paginacion).toEqual({ pagina: 1, porPagina: 20, total: 1, totalPaginas: 1 });
+    });
+
+    it("devuelve el umbral efectivo: propio si existe, si no el general; y el estado calculado", async () => {
+      prisma.configuracion.findUnique.mockResolvedValue({ valor: "10" });
+      prisma.articulo.count.mockResolvedValueOnce(2);
+      prisma.articulo.findMany.mockResolvedValueOnce([
+        { ...ARTICULO_BASE, sku: "A", inventarioMinimo: null, inventario: { cantidad: 8 } }, // general=10 -> bajo
+        { ...ARTICULO_BASE, sku: "B", inventarioMinimo: 2, inventario: { cantidad: 8 } }, // propio=2 -> en stock
+      ]);
+
+      const { articulos } = await listarArticulos({ ocultarDatosSensibles: true });
+
+      expect(articulos[0]).toMatchObject({ inventarioMinimo: 10, inventarioMinimoPropio: null, estadoStock: "bajo" });
+      expect(articulos[1]).toMatchObject({ inventarioMinimo: 2, inventarioMinimoPropio: 2, estadoStock: "en_stock" });
+      expect(articulos[0]).not.toHaveProperty("precioCosto");
+      expect(articulos[0]).not.toHaveProperty("proveedor");
+      prisma.configuracion.findUnique.mockReset();
+    });
+
+    it("soloConExistencias filtra por inventario.cantidad > 0", async () => {
+      prisma.articulo.count.mockResolvedValueOnce(0);
+      prisma.articulo.findMany.mockResolvedValueOnce([]);
+
+      await listarArticulos({ soloConExistencias: true, ocultarDatosSensibles: true });
+
+      expect(prisma.articulo.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { inventario: { is: { cantidad: { gt: 0 } } } } }),
+      );
+    });
+
+    it("orden=existencias pagina sobre (con stock) + (sin stock) con dos consultas", async () => {
+      // 3 con stock; página de 2 empezando en el índice 2 -> 1 con stock + 1 sin stock.
+      prisma.articulo.count.mockResolvedValueOnce(5).mockResolvedValueOnce(3);
+      prisma.articulo.findMany
+        .mockResolvedValueOnce([{ ...ARTICULO_BASE, sku: "CON" }])
+        .mockResolvedValueOnce([{ ...ARTICULO_BASE, sku: "SIN", inventario: { cantidad: 0 } }]);
+
+      const r = await listarArticulos({ pagina: 2, porPagina: 2, orden: "existencias", ocultarDatosSensibles: true });
+
+      expect(r.articulos.map((a) => a.sku)).toEqual(["CON", "SIN"]);
+      expect(prisma.articulo.findMany).toHaveBeenNthCalledWith(1, expect.objectContaining({ skip: 2, take: 2 }));
+      expect(prisma.articulo.findMany).toHaveBeenNthCalledWith(2, expect.objectContaining({ skip: 0, take: 1 }));
     });
 
     it("nunca deja pedir más de 100 resultados por página", async () => {

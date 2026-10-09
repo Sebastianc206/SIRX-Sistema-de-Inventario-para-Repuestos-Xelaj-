@@ -1,5 +1,7 @@
-import { useId, useState } from "react";
+import { useState } from "react";
 import type { FormEvent } from "react";
+import { Alert } from "@/components/ui/Alert";
+import { DialogBody, Drawer, FormFooter } from "@/components/ui/Dialog";
 import { crearUsuario, editarUsuario, UsuarioApiError } from "@/services/usuarioService";
 import { ROLES_DISPONIBLES } from "@/types/usuario";
 import type { UsuarioAdmin } from "@/types/usuario";
@@ -13,7 +15,6 @@ interface UsuarioFormModalProps {
 
 export function UsuarioFormModal({ usuario, onClose, onGuardado }: UsuarioFormModalProps) {
   const esEdicion = usuario !== null;
-  const tituloId = useId();
 
   const [nombres, setNombres] = useState("");
   const [primerApel, setPrimerApel] = useState("");
@@ -28,6 +29,7 @@ export function UsuarioFormModal({ usuario, onClose, onGuardado }: UsuarioFormMo
   const [vigente, setVigente] = useState(usuario?.vigente ?? true);
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [modificado, setModificado] = useState(false);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -65,17 +67,9 @@ export function UsuarioFormModal({ usuario, onClose, onGuardado }: UsuarioFormMo
   }
 
   return (
-    <div className="modal-overlay" role="presentation" onClick={onClose}>
-      <div
-        className="modal-card"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={tituloId}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2 id={tituloId}>{esEdicion ? "Editar usuario" : "Nuevo usuario operador"}</h2>
-
-        <form onSubmit={handleSubmit}>
+    <Drawer title={esEdicion ? "Editar usuario" : "Nuevo usuario operador"} dirty={modificado && !enviando} onClose={onClose}>
+      <form className="dialog-form" onSubmit={handleSubmit} onChange={() => setModificado(true)}>
+        <DialogBody>
           {esEdicion && (
             <div className="modal-readonly-info">
               <span>{usuario.nombreCompleto}</span>
@@ -200,22 +194,10 @@ export function UsuarioFormModal({ usuario, onClose, onGuardado }: UsuarioFormMo
             </label>
           </fieldset>
 
-          {error && (
-            <p className="banner banner--error" role="alert">
-              {error}
-            </p>
-          )}
-
-          <div className="modal-actions">
-            <button type="button" className="btn-secondary" onClick={onClose} disabled={enviando}>
-              Cancelar
-            </button>
-            <button type="submit" disabled={enviando}>
-              {enviando ? "Guardando..." : "Guardar"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+          {error && <Alert tone="error">{error}</Alert>}
+        </DialogBody>
+        <FormFooter enviando={enviando} />
+      </form>
+    </Drawer>
   );
 }

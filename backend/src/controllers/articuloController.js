@@ -43,6 +43,11 @@ function parseFiltroId(valor) {
   return Number.isInteger(numero) ? numero : undefined;
 }
 
+// Query string: "true"/"1" -> true; cualquier otra cosa -> sin filtrar.
+function parseBooleano(valor) {
+  return valor === "true" || valor === "1";
+}
+
 async function listarController(req, res) {
   try {
     const { pagina, porPagina } = parsePaginacion(req);
@@ -54,6 +59,8 @@ async function listarController(req, res) {
       idCategoria: parseFiltroId(req.query.idCategoria),
       idMarca: parseFiltroId(req.query.idMarca),
       idModelo: parseFiltroId(req.query.idModelo),
+      soloConExistencias: parseBooleano(req.query.soloConExistencias),
+      orden: req.query.orden === "existencias" ? "existencias" : undefined,
       ocultarDatosSensibles: ocultarDatosSensibles(req),
     });
     return res.json(resultado);

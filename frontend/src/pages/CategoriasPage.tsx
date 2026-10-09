@@ -1,28 +1,36 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { Sidebar } from "@/components/Sidebar";
 import { CategoriaFormModal } from "@/components/CategoriaFormModal";
+import { Alert } from "@/components/ui/Alert";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { DataTable } from "@/components/ui/DataTable";
+import type { Column } from "@/components/ui/DataTable";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { IconButton } from "@/components/ui/IconButton";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { TableToolbar } from "@/components/ui/TableToolbar";
+import { useToast } from "@/components/ui/toastContext";
 import { eliminarCategoria, listarCategorias, CategoriaApiError } from "@/services/categoriaService";
 import type { Categoria } from "@/types/categoria";
 
 type ModalState = { modo: "crear" } | { modo: "editar"; categoria: Categoria } | null;
 
 export default function CategoriasPage() {
+  const toast = useToast();
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [mensaje, setMensaje] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [modal, setModal] = useState<ModalState>(null);
-  const [idAEliminar, setIdAEliminar] = useState<number | null>(null);
-  const [idEnProceso, setIdEnProceso] = useState<number | null>(null);
+  const [aEliminar, setAEliminar] = useState<Categoria | null>(null);
+  const [enProceso, setEnProceso] = useState(false);
 
   const cargarCategorias = useCallback(async () => {
     setCargando(true);
     setError(null);
     try {
-      const datos = await listarCategorias();
-      setCategorias(datos);
+      setCategorias(await listarCategorias());
     } catch (err) {
       setError(err instanceof CategoriaApiError ? err.message : "No se pudo cargar el listado");
     } finally {
@@ -34,7 +42,7 @@ export default function CategoriasPage() {
     cargarCategorias();
   }, [cargarCategorias]);
 
-  const categoriasFiltradas = useMemo(() => {
+  const filtradas = useMemo(() => {
     const termino = busqueda.trim().toLowerCase();
     if (!termino) return categorias;
     return categorias.filter((c) => c.descripcion.toLowerCase().includes(termino));
@@ -42,138 +50,98 @@ export default function CategoriasPage() {
 
   function handleGuardado(mensajeExito: string) {
     setModal(null);
-    setMensaje(mensajeExito);
+    toast.success(mensajeExito);
     cargarCategorias();
   }
 
   async function handleEliminar(categoria: Categoria) {
-    setIdEnProceso(categoria.idCategoria);
-    setError(null);
+    setEnProceso(true);
     try {
       await eliminarCategoria(categoria.idCategoria);
       setCategorias((actual) => actual.filter((c) => c.idCategoria !== categoria.idCategoria));
-      setMensaje(`Se eliminó la categoría "${categoria.descripcion}".`);
+      toast.success(`Se eliminó la categoría "${categoria.descripcion}".`);
     } catch (err) {
-      setError(err instanceof CategoriaApiError ? err.message : "No se pudo eliminar la categoría");
+      toast.error(err instanceof CategoriaApiError ? err.message : "No se pudo eliminar la categoría");
     } finally {
-      setIdEnProceso(null);
-      setIdAEliminar(null);
+      setEnProceso(false);
+      setAEliminar(null);
     }
   }
 
+  const columnas: Column<Categoria>[] = [
+    { key: "descripcion", header: "Descripción", primary: true, sortValue: (c) => c.descripcion, cell: (c) => c.descripcion },
+  ];
+
   return (
-    <div className="app-shell">
-      <Sidebar />
+    <div className="page-stack">
+      <PageHeader
+        title="Categorías"
+        actions={
+          <Button icon="plus" onClick={() => setModal({ modo: "crear" })}>
+            Nueva categoría
+          </Button>
+        }
+      />
 
-      <main className="admin-page">
-        <Link to="/" className="admin-volver">
-          ← Volver al panel
-        </Link>
+      <TableToolbar
+        searchLabel="Buscar categorías"
+        searchPlaceholder="Buscar por descripción..."
+        searchValue={busqueda}
+        onSearchChange={setBusqueda}
+      />
 
-        <div className="admin-toolbar">
-          <h2>Categorías</h2>
-          <button onClick={() => setModal({ modo: "crear" })}>+ Nueva categoría</button>
+      {error && (
+        <Alert tone="error" action={<Button size="sm" variant="secondary" onClick={cargarCategorias}>Reintentar</Button>}>
+          {error}
+        </Alert>
+      )}
+
+      <Card padded={false} className="table-card">
+        <div className="table-card-head">
+          <h2>
+            {filtradas.length} categoría{filtradas.length === 1 ? "" : "s"}
+          </h2>
         </div>
-
-        <div className="admin-filtros">
-          <label>
-            Buscar
-            <input
-              type="search"
-              value={busqueda}
-              onChange={(event) => setBusqueda(event.target.value)}
-              placeholder="Buscar por descripción..."
-            />
-          </label>
-        </div>
-
-        {mensaje && (
-          <p className="banner banner--success" role="status">
-            {mensaje}
-          </p>
-        )}
-        {error && (
-          <p className="banner banner--error" role="alert">
-            {error}
-          </p>
-        )}
-
-        {cargando ? (
-          <p className="admin-estado-vacio">Cargando categorías...</p>
-        ) : categoriasFiltradas.length === 0 ? (
-          <p className="admin-estado-vacio">
-            {categorias.length === 0
-              ? "Todavía no hay categorías registradas."
-              : "No hay categorías que coincidan con la búsqueda."}
-          </p>
-        ) : (
-          <div className="admin-tabla-wrap">
-            <table className="admin-tabla">
-              <thead>
-                <tr>
-                  <th>Descripción</th>
-                  <th aria-label="Acciones" />
-                </tr>
-              </thead>
-              <tbody>
-                {categoriasFiltradas.map((fila) => (
-                  <tr key={fila.idCategoria}>
-                    <td>{fila.descripcion}</td>
-                    <td className="admin-acciones">
-                      {idAEliminar === fila.idCategoria ? (
-                        <>
-                          <span className="modal-helper-text">¿Eliminar?</span>
-                          <button
-                            type="button"
-                            className="btn-danger"
-                            onClick={() => handleEliminar(fila)}
-                            disabled={idEnProceso === fila.idCategoria}
-                          >
-                            {idEnProceso === fila.idCategoria ? "..." : "Sí, eliminar"}
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-secondary"
-                            onClick={() => setIdAEliminar(null)}
-                            disabled={idEnProceso === fila.idCategoria}
-                          >
-                            Cancelar
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            type="button"
-                            className="btn-secondary"
-                            onClick={() => setModal({ modo: "editar", categoria: fila })}
-                          >
-                            Editar
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-danger"
-                            onClick={() => setIdAEliminar(fila.idCategoria)}
-                          >
-                            Eliminar
-                          </button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </main>
+        <DataTable
+          caption="Listado de categorías"
+          columns={columnas}
+          rows={filtradas}
+          rowKey={(c) => c.idCategoria}
+          loading={cargando}
+          empty={
+            error ? null : categorias.length === 0 ? (
+              <EmptyState
+                icon="tag"
+                title="Todavía no hay categorías registradas."
+                description="Crea la primera para empezar a clasificar tus repuestos."
+                action={<Button icon="plus" onClick={() => setModal({ modo: "crear" })}>Nueva categoría</Button>}
+              />
+            ) : (
+              <EmptyState icon="search" title="No hay categorías que coincidan con la búsqueda." action={<Button variant="secondary" onClick={() => setBusqueda("")}>Limpiar búsqueda</Button>} />
+            )
+          }
+          rowActions={(fila) => (
+            <>
+              <IconButton icon="edit" label="Editar" size="sm" onClick={() => setModal({ modo: "editar", categoria: fila })} />
+              <IconButton icon="trash" label="Eliminar" size="sm" variant="danger-ghost" onClick={() => setAEliminar(fila)} />
+            </>
+          )}
+        />
+      </Card>
 
       {modal && (
-        <CategoriaFormModal
-          categoria={modal.modo === "editar" ? modal.categoria : null}
-          onClose={() => setModal(null)}
-          onGuardado={handleGuardado}
-        />
+        <CategoriaFormModal categoria={modal.modo === "editar" ? modal.categoria : null} onClose={() => setModal(null)} onGuardado={handleGuardado} />
       )}
+
+      <ConfirmDialog
+        open={aEliminar !== null}
+        title="¿Eliminar esta categoría?"
+        description={`Se eliminará la categoría "${aEliminar?.descripcion}". Si tiene repuestos asignados, el sistema no lo permitirá.`}
+        confirmLabel="Sí, eliminar"
+        loading={enProceso}
+        onConfirm={() => aEliminar && handleEliminar(aEliminar)}
+        onCancel={() => setAEliminar(null)}
+      />
     </div>
   );
 }

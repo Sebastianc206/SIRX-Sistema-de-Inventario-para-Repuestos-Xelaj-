@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SIRX · Demo de paletas verdes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --papel:#f4f5f1; --blanco:#fff; --borde:#d3d6cc; --tinta:#1e1d1a; --tenue:#5d6258;
+  --laton:#b8893a;
+  --ok-bg:#dff0e6; --ok-tx:#124a31; --bajo-bg:#fbecc8; --bajo-tx:#6a4608; --ago-bg:#f8dfda; --ago-tx:#7a2519;
+  --bar-h:52px;
+}
+/* ===== 4 propuestas (+ la actual como referencia) ===== */
+[data-pal="actual"]{--p100:#e8f1ec;--p200:#c3dccf;--p300:#94bfa9;--p400:#5f9c82;--p500:#34775e;--p600:#1f5a45;--p700:#164535;--p800:#0f3226;--p900:#0a2219}
+[data-pal="esmeralda"]{--p100:#e3f4ec;--p200:#bde5d2;--p300:#8dd1b2;--p400:#4fb68c;--p500:#1b9470;--p600:#0b6e4f;--p700:#095840;--p800:#07422f;--p900:#052a1e}
+[data-pal="hoja"]{--p100:#e7f4e8;--p200:#c4e4c7;--p300:#98d09d;--p400:#62b46b;--p500:#3a9345;--p600:#2e7d32;--p700:#236326;--p800:#194a1c;--p900:#0f2f12}
+[data-pal="musgo"]{--p100:#eef2e3;--p200:#d6e0bd;--p300:#b7c98f;--p400:#8da95f;--p500:#6c8a3f;--p600:#556b2f;--p700:#43551f;--p800:#323f17;--p900:#1f280e}
+[data-pal="teal"]{--p100:#e1f2f0;--p200:#b8e0db;--p300:#86cbc4;--p400:#4aaea5;--p500:#1b8d85;--p600:#0f766e;--p700:#0d5f59;--p800:#0a4945;--p900:#062e2c}
+
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--papel);color:var(--tinta);font:14px/1.5 Inter,system-ui,sans-serif;padding-top:var(--bar-h)}
+h1,h2,h3{font-family:Barlow,Inter,sans-serif;font-weight:600;margin:0}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:3px solid #2b6cb0;outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+/* barra de paletas (solo para la demo) */
+#demo{position:fixed;inset:0 0 auto 0;height:var(--bar-h);background:#1e1d1a;color:#fff;display:flex;align-items:center;gap:10px;padding:0 14px;z-index:50;overflow-x:auto}
+#demo b{font:600 13px Inter;white-space:nowrap;opacity:.8}
+#demo button{border:1px solid #55524c;background:#2c2a26;color:#fff;border-radius:99px;padding:6px 12px;font-size:13px;white-space:nowrap;display:flex;align-items:center;gap:7px;min-height:34px}
+#demo button i{width:12px;height:12px;border-radius:50%;display:block}
+#demo button[aria-pressed="true"]{background:#fff;color:#1e1d1a;border-color:#fff}
+#demo .sp{flex:1}
+#demo .ref{opacity:.75}
+
+/* ===== login ===== */
+#login{min-height:calc(100vh - var(--bar-h));display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.lg-brand{background:var(--p900);color:#fff;padding:36px 44px;display:flex;flex-direction:column;justify-content:space-between}
+.lg-brand .mk{display:flex;align-items:center;gap:10px;font:600 20px Barlow}
+.lg-brand .mk span{width:34px;height:34px;border-radius:8px;background:var(--p600);display:grid;place-items:center;font-size:14px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+.lg-brand small{display:block;font:400 12px Inter;color:var(--p300)}
+.lg-brand h1{font-size:44px;line-height:1.05;max-width:12ch}
+.lg-brand p{margin:0;font-size:12px;color:var(--p300)}
+.lg-form{display:grid;place-items:center;padding:30px}
+.lg-form form{width:min(360px,100%);display:flex;flex-direction:column;gap:12px}
+.lg-form h2{font-size:26px}
+.lg-form p{margin:0;color:var(--tenue)}
+label{font-size:12.5px;font-weight:500}
+input{width:100%;font:inherit;padding:10px 11px;border:1px solid var(--borde);border-radius:8px;background:#fff;min-height:44px}
+input:focus{outline:none;border-color:var(--p500);box-shadow:0 0 0 3px var(--p200)}
+.btn{font:500 14px Inter;padding:10px 16px;border-radius:8px;border:1px solid transparent;min-height:44px}
+.btn.pri{background:var(--p600);color:#fff}
+.btn.pri:hover{background:var(--p700)}
+.btn.sec{background:#fff;border-color:var(--borde);color:var(--tinta)}
+.btn.sm{min-height:36px;padding:7px 12px;font-size:13px}
+.hint{font-size:12px;color:var(--tenue);background:var(--p100);border-radius:8px;padding:8px 10px}
+
+/* ===== app ===== */
+#app{display:none;grid-template-columns:240px minmax(0,1fr);min-height:calc(100vh - var(--bar-h))}
+.sb{background:var(--p900);color:#c9dcd1;padding:16px 12px;display:flex;flex-direction:column;gap:2px;position:sticky;top:var(--bar-h);height:calc(100vh - var(--bar-h))}
+.sb .brand{font:600 20px Barlow;color:#fff;padding:2px 8px 18px}
+.sb .brand small{display:block;font:400 12px Inter;color:var(--p300)}
+.sb button{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:8px;font-size:14px;color:#c9dcd1;cursor:pointer;min-height:44px}
+.sb button:hover{background:rgba(255,255,255,.07)}
+.sb button:focus-visible{outline:3px solid #fff;outline-offset:-3px}
+.sb button i{width:16px;height:16px;border-radius:4px;border:1.8px solid currentColor;opacity:.85;flex:none}
+.sb button[aria-current="page"]{background:rgba(255,255,255,.11);color:#fff;box-shadow:inset 3px 0 0 var(--laton)}
+.sb .grp{margin-top:14px;padding:6px 12px;font-size:12px;color:var(--p300)}
+.sb .foot{margin-top:auto;padding:10px 12px;border-top:1px solid rgba(255,255,255,.12);font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sb .foot button{min-height:34px;padding:6px 10px;font-size:12.5px;color:#fff;border:1px solid rgba(255,255,255,.25)}
+.main{min-width:0;display:flex;flex-direction:column}
+.top{height:56px;background:#fff;border-bottom:1px solid var(--borde);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:var(--bar-h);z-index:5;gap:12px}
+.crumb{font-size:13px;color:var(--tenue)} .crumb b{color:var(--tinta);font-weight:600}
+.find{display:flex;align-items:center;gap:8px;border:1px solid var(--borde);border-radius:99px;padding:6px 14px;min-width:240px;color:var(--tenue);font-size:13px;background:var(--papel)}
+.find kbd{font:500 11px Inter;border:1px solid var(--borde);border-radius:5px;padding:1px 6px;background:#fff}
+.user{display:flex;align-items:center;gap:9px;font-size:13px}
+.av{width:32px;height:32px;border-radius:50%;background:var(--p600);color:#fff;display:grid;place-items:center;font-weight:600;font-size:12px}
+.page{padding:22px 26px 40px;display:flex;flex-direction:column;gap:16px;max-width:1200px;width:100%}
+.ph{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.ph h2{font-size:26px}
+.acts{display:flex;gap:8px;align-items:center}
+.kpis{display:flex;background:#fff;border:1px solid var(--borde);border-radius:10px;flex-wrap:wrap}
+.kpis div{flex:1;min-width:150px;padding:12px 18px;border-right:1px solid var(--borde)}
+.kpis div:last-child{border:0}
+.kpis small{display:block;color:var(--tenue);font-size:12.5px}
+.kpis b{font:600 26px Inter;font-variant-numeric:tabular-nums}
+.kpis b.v{color:var(--p600)}
+.cols{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px}
+.card{background:#fff;border:1px solid var(--borde);border-radius:10px;padding:14px 16px;min-width:0}
+.card h3{font:600 15px Inter;margin-bottom:10px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{background:var(--p100);color:var(--p800);text-align:left;font-weight:600;padding:9px 12px;font-size:12.5px}
+td{padding:10px 12px;border-top:1px solid #e9ebe4;font-variant-numeric:tabular-nums}
+tbody tr:hover td{background:var(--p100)}
+.r{text-align:right}
+.bg{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:2px 10px;border-radius:99px}
+.bg::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.bg.ok{background:var(--ok-bg);color:var(--ok-tx)} .bg.bajo{background:var(--bajo-bg);color:var(--bajo-tx)} .bg.ago{background:var(--ago-bg);color:var(--ago-tx)}
+.lnk{color:var(--p600);font-weight:500;text-decoration:none}
+.bars{display:flex;align-items:flex-end;gap:7px;height:150px}
+.bars i{flex:1;background:var(--p500);border-radius:4px 4px 0 0}
+.bars i:nth-child(odd){background:var(--p600)}
+.bars i.hi{background:var(--laton)}
+.tool{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tool input{max-width:320px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--p100);color:var(--p800);border-radius:99px;padding:4px 11px;font-size:12.5px;font-weight:500}
+.pos{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;align-items:start}
+.item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid #e9ebe4}
+.item:first-child{border-top:0}
+.item:hover{background:var(--p100)}
+.item small{display:block;color:var(--tenue);font-size:12px}
+.tot{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--borde);margin-top:12px;padding-top:12px}
+.tot b{font:600 30px Barlow}
+.list a{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:8px;color:var(--tinta);text-decoration:none;cursor:pointer;font-size:13.5px}
+.list a:hover{background:var(--p100)}
+.list a[aria-current="true"]{background:var(--p100);color:var(--p800);font-weight:600}
+.foc{display:inline-block;padding:7px 11px;border:1px solid var(--p500);border-radius:8px;box-shadow:0 0 0 3px var(--p200);background:#fff;font-size:13px}
+.screen{display:none} .screen.on{display:flex;flex-direction:column;gap:16px}
+@media (max-width:900px){
+  #login{grid-template-columns:1fr}.lg-brand{padding:24px}.lg-brand h1{font-size:30px}
+  #app{grid-template-columns:1fr}.sb{position:static;height:auto;flex-direction:row;flex-wrap:wrap}.sb .grp,.sb .foot{display:none}
+  .cols,.pos{grid-template-columns:1fr}.find{display:none}.page{padding:16px}
+}
+</style>
+</head>
+<body data-pal="esmeralda">
+
+<div id="demo" role="group" aria-label="Elegir paleta">
+  <b>Paleta:</b>
+  <button data-pal="esmeralda" aria-pressed="true"><i style="background:#0b6e4f"></i>1 · Esmeralda</button>
+  <button data-pal="hoja" aria-pressed="false"><i style="background:#2e7d32"></i>2 · Verde hoja</button>
+  <button data-pal="musgo" aria-pressed="false"><i style="background:#556b2f"></i>3 · Musgo</button>
+  <button data-pal="teal" aria-pressed="false"><i style="background:#0f766e"></i>4 · Verde petróleo</button>
+  <span class="sp"></span>
+  <button class="ref" data-pal="actual" aria-pressed="false"><i style="background:#1f5a45"></i>Actual (referencia)</button>
+  <button id="salir" class="ref" hidden>Volver al login</button>
+</div>
+
+<!-- LOGIN -->
+<section id="login">
+  <div class="lg-brand">
+    <div class="mk"><span>SX</span><div>SIRX<small>Repuestos Xelajú</small></div></div>
+    <h1>Inventario claro, mostrador rápido.</h1>
+    <p>Sistema de Inventario para Repuestos Xelajú</p>
+  </div>
+  <div class="lg-form">
+    <form id="f" novalidate>
+      <h2>Iniciar sesión</h2>
+      <p>Ingresa con tu cuenta de SIRX.</p>
+      <div><label for="u">Usuario</label><input id="u" placeholder="admin" autocomplete="off"></div>
+      <div><label for="pw">Contraseña</label><input id="pw" type="password" placeholder="••••••••" autocomplete="off"></div>
+      <button class="btn pri" type="submit">Ingresar</button>
+      <div class="hint">Demo visual: no valida usuario ni contraseña. Pulsa «Ingresar» para entrar.</div>
+    </form>
+  </div>
+</section>
+
+<!-- APP -->
+<div id="app">
+  <nav class="sb" aria-label="Principal">
+    <div class="brand">SIRX<small>Repuestos Xelajú</small></div>
+    <button data-go="inicio" aria-current="page"><i></i>Inicio</button>
+    <button data-go="ventas"><i></i>Ventas</button>
+    <button data-go="repuestos"><i></i>Repuestos</button>
+    <button data-go="reportes"><i></i>Reportes</button>
+    <div class="grp">Gestión</div>
+    <button data-go="inicio"><i></i>Compras</button>
+    <button data-go="inicio"><i></i>Ajustes</button>
+    <div class="foot"><span>Admin Sistema</span><button type="button" id="out">Salir</button></div>
+  </nav>
+  <div class="main">
+    <header class="top">
+      <div class="crumb" id="crumb"><b>Inicio</b></div>
+      <div class="find">Buscar o ir a… <kbd>Ctrl</kbd><kbd>K</kbd></div>
+      <div class="user"><div class="av">AS</div><div>Admin Sistema<br><small style="color:var(--tenue)">Administrador</small></div></div>
+    </header>
+
+    <div class="page">
+      <!-- INICIO -->
+      <div class="screen on" id="s-inicio">
+        <div class="ph"><h2>Inicio</h2><div class="acts"><button class="btn sec sm">Actualizar</button><button class="btn pri sm">Nueva venta</button></div></div>
+        <div class="kpis"><div><small>Ventas de hoy</small><b class="v">Q5,413</b></div><div><small>Alertas de stock</small><b>32</b></div><div><small>Agotados</small><b>12</b></div></div>
+        <div class="cols">
+          <div class="card"><h3>Alertas de stock</h3>
+            <table><thead><tr><th>Repuesto</th><th class="r">Stock</th><th>Estado</th><th></th></tr></thead><tbody>
+              <tr><td><a class="lnk" href="#">FIL-100</a> Filtro de aceite</td><td class="r">3</td><td><span class="bg bajo">Stock bajo</span></td><td class="r"><a class="lnk" href="#">Reponer</a></td></tr>
+              <tr><td><a class="lnk" href="#">FRE-3001</a> Pastillas delanteras</td><td class="r">0</td><td><span class="bg ago">Agotado</span></td><td class="r"><a class="lnk" href="#">Reponer</a></td></tr>
+              <tr><td><a class="lnk" href="#">SUS-3004</a> Amortiguador trasero</td><td class="r">2</td><td><span class="bg bajo">Stock bajo</span></td><td class="r"><a class="lnk" href="#">Reponer</a></td></tr>
+              <tr><td><a class="lnk" href="#">LUB-100</a> Aceite sintético 5W-30</td><td class="r">12</td><td><span class="bg ok">En stock</span></td><td></td></tr>
+            </tbody></table>
+          </div>
+          <div class="card"><h3>Ventas, últimos 14 días</h3>
+            <div class="bars"><i style="height:34%"></i><i style="height:52%"></i><i style="height:46%"></i><i style="height:70%"></i><i style="height:58%"></i><i style="height:80%"></i><i style="height:64%"></i><i style="height:44%"></i><i style="height:60%"></i><i style="height:76%"></i><i style="height:68%"></i><i style="height:88%"></i><i class="hi" style="height:100%"></i><i style="height:72%"></i></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VENTAS -->
+      <div class="screen" id="s-ventas">
+        <div class="ph"><h2>Ventas</h2><div class="acts"><button class="btn sec sm">Filtros</button></div></div>
+        <div class="pos">
+          <div class="card"><div class="tool" style="margin-bottom:8px"><input placeholder="Escanea o busca SKU / nombre…"><span class="chip">Solo con existencias</span></div>
+            <div class="item"><div>Aceite sintético 5W-30 (galón)<small>LUB-100 · Mobil</small></div><div><b class="num">Q220.00</b> <span class="bg ok">12</span></div></div>
+            <div class="item"><div>Filtro de aceite Corolla<small>FIL-100 · Fram</small></div><div><b class="num">Q45.00</b> <span class="bg ok">25</span></div></div>
+            <div class="item"><div>Pastillas de freno delanteras<small>FRE-3001 · Bosch</small></div><div><b class="num">Q185.00</b> <span class="bg bajo">3</span></div></div>
+            <div class="item"><div>Rótula de suspensión<small>SUS-101 · Monroe</small></div><div><b class="num">Q150.00</b> <span class="bg ok">4</span></div></div>
+            <div class="item"><div>Amortiguador delantero<small>SUS-100 · Monroe</small></div><div><b class="num">Q450.00</b> <span class="bg ago">0</span></div></div>
+          </div>
+          <div class="card"><h3>Carrito <span class="chip">2</span></h3>
+            <div class="item"><div>Filtro de aceite Corolla<small>1 × Q45.00</small></div><b class="num">Q45.00</b></div>
+            <div class="item"><div>Aceite sintético 5W-30<small>2 × Q220.00</small></div><b class="num">Q440.00</b></div>
+            <div class="tot"><span>Total</span><b class="num">Q485.00</b></div>
+            <button class="btn pri" style="width:100%;margin-top:12px">Registrar venta · Q485.00</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- REPUESTOS -->
+      <div class="screen" id="s-repuestos">
+        <div class="ph"><h2>Repuestos</h2><div class="acts"><button class="btn sec sm">Más</button><button class="btn pri sm">Nuevo repuesto</button></div></div>
+        <div class="tool"><input placeholder="Buscar por SKU o nombre…"><button class="btn sec sm">Filtros</button><span class="chip">Categoría: Frenos ✕</span><span class="foc">Campo con foco de teclado</span></div>
+        <div class="card" style="padding:0;overflow:hidden"><table><thead><tr><th>SKU</th><th>Repuesto</th><th>Categoría</th><th class="r">Precio</th><th class="r">Stock</th><th>Estado</th></tr></thead><tbody>
+          <tr><td>FRE-3001</td><td>Pastillas de freno delanteras</td><td>Frenos</td><td class="r">Q185.00</td><td class="r">3</td><td><span class="bg bajo">Stock bajo</span></td></tr>
+          <tr><td>FRE-3002</td><td>Disco de freno ventilado</td><td>Frenos</td><td class="r">Q320.00</td><td class="r">0</td><td><span class="bg ago">Agotado</span></td></tr>
+          <tr><td>FIL-100</td><td>Filtro de aceite Corolla</td><td>Filtros</td><td class="r">Q45.00</td><td class="r">25</td><td><span class="bg ok">En stock</span></td></tr>
+          <tr><td>LUB-100</td><td>Aceite sintético 5W-30</td><td>Lubricantes</td><td class="r">Q220.00</td><td class="r">12</td><td><span class="bg ok">En stock</span></td></tr>
+          <tr><td>SUS-101</td><td>Rótula de suspensión</td><td>Suspensión</td><td class="r">Q150.00</td><td class="r">4</td><td><span class="bg bajo">Stock bajo</span></td></tr>
+        </tbody></table></div>
+      </div>
+
+      <!-- REPORTES -->
+      <div class="screen" id="s-reportes">
+        <div class="ph"><h2>Reportes</h2><div class="acts"><button class="btn sec sm">Excel</button><button class="btn pri sm">Descargar PDF</button></div></div>
+        <div class="pos" style="grid-template-columns:minmax(0,.8fr) minmax(0,1.6fr)">
+          <div class="card list"><a aria-current="true">Productos más vendidos</a><a>Existencias valorizadas</a><a>Movimientos</a><a>Reposición sugerida</a><a>Rotación y stock muerto</a><a>Ventas por período</a></div>
+          <div class="card"><h3>Productos más vendidos · últimos 30 días</h3>
+            <div class="kpis" style="margin-bottom:14px"><div><small>Unidades</small><b>1,787</b></div><div><small>Tickets</small><b>472</b></div><div><small>Top 5 aporta</small><b class="v">38%</b></div></div>
+            <table><thead><tr><th>#</th><th>Producto</th><th class="r">Unidades</th><th class="r">%</th></tr></thead><tbody>
+              <tr><td>1</td><td>Aceite Mobil 10W-30</td><td class="r">534</td><td class="r">29.9%</td></tr>
+              <tr><td>2</td><td>Plumilla 20"</td><td class="r">524</td><td class="r">29.3%</td></tr>
+              <tr><td>3</td><td>Filtro de aceite Corolla</td><td class="r">317</td><td class="r">17.7%</td></tr>
+            </tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+function setPal(p){
+  document.body.dataset.pal=p;
+  $$('#demo [data-pal]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.pal===p));
+  try{history.replaceState(null,'','#'+p)}catch(e){}
+}
+function go(name){
+  $$('.screen').forEach(s=>s.classList.toggle('on',s.id==='s-'+name));
+  $$('.sb [data-go]').forEach(b=>b.removeAttribute('aria-current'));
+  const first=$(`.sb [data-go="${name}"]`); if(first) first.setAttribute('aria-current','page');
+  const names={inicio:'Inicio',ventas:'Ventas',repuestos:'Repuestos',reportes:'Reportes'};
+  $('#crumb').innerHTML= name==='inicio' ? '<b>Inicio</b>' : 'Inicio / <b>'+names[name]+'</b>';
+  window.scrollTo(0,0);
+}
+function entrar(){ $('#login').style.display='none'; $('#app').style.display='grid'; $('#salir').hidden=false; go('inicio') }
+function salir(){ $('#app').style.display='none'; $('#login').style.display='grid'; $('#salir').hidden=true }
+$$('#demo [data-pal]').forEach(b=>b.addEventListener('click',()=>setPal(b.dataset.pal)));
+$$('.sb [data-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.go)));
+$('#f').addEventListener('submit',e=>{e.preventDefault();entrar()});
+$('#out').addEventListener('click',salir); $('#salir').addEventListener('click',salir);
+const h=location.hash.slice(1); if(['esmeralda','hoja','musgo','teal','actual'].includes(h)) setPal(h);
+</script>
+</body>
+</html>

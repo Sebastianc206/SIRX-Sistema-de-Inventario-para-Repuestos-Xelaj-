@@ -1,6 +1,12 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
+import { BrandLogo } from "@/components/layout/BrandLogo";
+import { Alert } from "@/components/ui/Alert";
+import { Button } from "@/components/ui/Button";
+import { Field, Input } from "@/components/ui/Field";
+import { Icon } from "@/components/ui/Icon";
+import type { IconName } from "@/components/ui/Icon";
 import { useAuth } from "@/hooks/useAuth";
 import { AuthApiError } from "@/services/authService";
 
@@ -9,54 +15,78 @@ interface ErrorInfo {
   bloqueado: boolean;
 }
 
-function IconoCandado() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M6 10V8a6 6 0 1 1 12 0v2m-13 0h14a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-9a1 1 0 0 1 1-1Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-    </svg>
-  );
+interface ErroresCampo {
+  username?: string;
+  password?: string;
 }
 
-function IconoAlerta() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M12 8v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <circle cx="12" cy="16" r="1" fill="currentColor" />
-    </svg>
-  );
+// Solo se recuerda el nombre de usuario; la contraseña nunca se guarda.
+const CLAVE_USUARIO = "sirx-remembered-username";
+
+function leerUsuarioRecordado(): string {
+  try {
+    return localStorage.getItem(CLAVE_USUARIO) ?? "";
+  } catch {
+    return "";
+  }
 }
 
-function IconoInfo() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M12 11v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <circle cx="12" cy="8" r="1" fill="currentColor" />
-    </svg>
-  );
+function guardarUsuarioRecordado(usuario: string | null) {
+  try {
+    if (usuario) localStorage.setItem(CLAVE_USUARIO, usuario);
+    else localStorage.removeItem(CLAVE_USUARIO);
+  } catch {
+    /* Sin persistencia si el almacenamiento local no está disponible. */
+  }
 }
 
+const FUNCIONES: { icono: IconName; texto: string }[] = [
+  { icono: "box", texto: "Inventario" },
+  { icono: "cart", texto: "Ventas de mostrador" },
+  { icono: "barChart", texto: "Reportes" },
+];
+
+// Tarjeta sobre lienzo claro: panel de marca verde bosque (el logo es el
+// protagonista, centrado) + formulario blanco. En móvil el panel se reduce a
+// una cabecera compacta con el logo.
 export default function LoginPage() {
-  const [username, setUsername] = useState("");
+  const [recordado] = useState(leerUsuarioRecordado);
+  const [username, setUsername] = useState(recordado);
   const [password, setPassword] = useState("");
+  const [recordar, setRecordar] = useState(recordado !== "");
+  const [verPassword, setVerPassword] = useState(false);
+  const [errores, setErrores] = useState<ErroresCampo>({});
   const [errorInfo, setErrorInfo] = useState<ErrorInfo | null>(null);
   const [enviando, setEnviando] = useState(false);
-  const { iniciarSesion, logoutReason, limpiarMotivoCierre } = useAuth();
+  const usernameRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const { usuario, iniciarSesion, logoutReason, limpiarMotivoCierre } = useAuth();
   const navigate = useNavigate();
+
+  if (usuario) {
+    return <Navigate to="/" replace />;
+  }
+
+  function validar(): boolean {
+    const nuevos: ErroresCampo = {};
+    if (!username.trim()) nuevos.username = "Ingresa tu nombre de usuario.";
+    if (!password) nuevos.password = "Ingresa tu contraseña.";
+    setErrores(nuevos);
+    if (nuevos.username) usernameRef.current?.focus();
+    else if (nuevos.password) passwordRef.current?.focus();
+    return !nuevos.username && !nuevos.password;
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setErrorInfo(null);
     limpiarMotivoCierre();
+    if (!validar()) return;
     setEnviando(true);
 
     try {
       await iniciarSesion(username, password);
+      guardarUsuarioRecordado(recordar ? username.trim() : null);
       navigate("/");
     } catch (err) {
       if (err instanceof AuthApiError) {
@@ -69,68 +99,136 @@ export default function LoginPage() {
     }
   }
 
+  function cambiarRecordar(valor: boolean) {
+    setRecordar(valor);
+    if (!valor) guardarUsuarioRecordado(null);
+  }
+
   return (
-    <div className="login-page">
-      <div className="login-card">
-        <div className="login-brand">
-          <span className="login-brand-mark" aria-hidden="true">
-            SX
-          </span>
-          <div className="login-brand-text">
-            <h1>SIRX</h1>
-            <p>Repuestos Xelajú</p>
-          </div>
-        </div>
+    <div className="login">
+      <div className="login-shell">
+        <aside className="login-brand on-dark" aria-label="Acerca de SIRX">
+          <div className="login-brand-center">
+            <div role="img" aria-label="SIRX, Repuestos Xelajú">
+              <BrandLogo className="login-brand-logo" />
+            </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="login-field">
-            <label htmlFor="username">Usuario</label>
-            <input
-              id="username"
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
-              autoComplete="username"
-              required
-            />
-          </div>
-
-          <div className="login-field">
-            <label htmlFor="password">Contraseña</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              autoComplete="current-password"
-              required
-            />
+            <div className="login-brand-more">
+              <span className="login-brand-rule" aria-hidden="true" />
+              <p className="login-brand-headline">
+                Todo tu inventario. <span>En un solo lugar.</span>
+              </p>
+              <p className="login-brand-lead">
+                Administra tus repuestos, agiliza las ventas y mantén el control de tu operación desde una plataforma sencilla y confiable.
+              </p>
+              <ul className="login-brand-facts" aria-label="Funciones del sistema">
+                {FUNCIONES.map((f) => (
+                  <li key={f.texto}>
+                    <Icon name={f.icono} size={16} />
+                    {f.texto}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
-          {!errorInfo && logoutReason === "inactivity" && (
-            <p className="login-banner login-info" role="status">
-              <IconoInfo />
-              <span>Tu sesión se cerró por inactividad. Inicia sesión nuevamente.</span>
+          <p className="login-brand-foot">
+            <span>Sistema de Inventario</span>
+            <strong>Repuestos Xelajú</strong>
+          </p>
+        </aside>
+
+        <main className="login-panel">
+          <div className="login-card">
+            <h1>Bienvenido de nuevo</h1>
+            <p className="login-subtitle">Ingresa tus credenciales para continuar.</p>
+
+            <form onSubmit={handleSubmit} noValidate>
+              <Field label="Usuario" error={errores.username}>
+                {(props) => (
+                  <div className="input-icon-wrap">
+                    <Icon name="user" size={19} className="input-icon" />
+                    <Input
+                      {...props}
+                      ref={usernameRef}
+                      value={username}
+                      onChange={(event) => {
+                        setUsername(event.target.value);
+                        if (errores.username) setErrores((e) => ({ ...e, username: undefined }));
+                      }}
+                      placeholder="Ingresa tu usuario"
+                      autoComplete="username"
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      autoFocus={!recordado}
+                      aria-required="true"
+                    />
+                  </div>
+                )}
+              </Field>
+
+              <Field label="Contraseña" error={errores.password}>
+                {(props) => (
+                  <div className="input-icon-wrap password-wrap">
+                    <Icon name="lock" size={19} className="input-icon" />
+                    <Input
+                      {...props}
+                      ref={passwordRef}
+                      type={verPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(event) => {
+                        setPassword(event.target.value);
+                        if (errores.password) setErrores((e) => ({ ...e, password: undefined }));
+                      }}
+                      placeholder="Ingresa tu contraseña"
+                      autoComplete="current-password"
+                      autoFocus={!!recordado}
+                      aria-required="true"
+                    />
+                    <button type="button" className="password-toggle" aria-pressed={verPassword} onClick={() => setVerPassword((v) => !v)}>
+                      {verPassword ? "Ocultar" : "Mostrar"}
+                    </button>
+                  </div>
+                )}
+              </Field>
+
+              <label className="login-remember">
+                <input type="checkbox" checked={recordar} onChange={(event) => cambiarRecordar(event.target.checked)} />
+                Recordar usuario
+              </label>
+
+              {!errorInfo && logoutReason === "inactivity" && (
+                <Alert tone="info" className="login-banner login-info">
+                  Tu sesión se cerró por inactividad. Inicia sesión nuevamente.
+                </Alert>
+              )}
+
+              {errorInfo && (
+                <Alert tone="error" className={errorInfo.bloqueado ? "login-banner login-error login-error--locked" : "login-banner login-error"}>
+                  {errorInfo.message}
+                </Alert>
+              )}
+
+              <Button type="submit" size="lg" block loading={enviando}>
+                {enviando ? (
+                  "Ingresando..."
+                ) : (
+                  <>
+                    Ingresar
+                    <Icon name="arrowRight" size={18} strokeWidth={2} />
+                  </>
+                )}
+              </Button>
+            </form>
+
+            <p className="login-help">
+              ¿Necesitas acceso al sistema?
+              <br />
+              <strong>Comunícate con el administrador.</strong>
             </p>
-          )}
-
-          {errorInfo && (
-            <p
-              className={
-                errorInfo.bloqueado
-                  ? "login-banner login-error login-error--locked"
-                  : "login-banner login-error"
-              }
-              role="alert"
-            >
-              {errorInfo.bloqueado ? <IconoCandado /> : <IconoAlerta />}
-              <span>{errorInfo.message}</span>
-            </p>
-          )}
-
-          <button type="submit" disabled={enviando}>
-            {enviando ? "Ingresando..." : "Ingresar"}
-          </button>
-        </form>
+          </div>
+          <p className="login-foot">© {new Date().getFullYear()} Repuestos Xelajú · SIRX</p>
+        </main>
       </div>
     </div>
   );
